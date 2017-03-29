@@ -17,11 +17,8 @@ namespace HladaniePokladu
 
         internal Jedinec(int index)
         {
-            var rand = new Random();
             for (var i = 0; i < index; i++)
-            {
-                Bunky[i] = (byte)rand.Next(256);
-            }
+                Bunky[i] = (byte)Rand.Next(256);
         }
 
         internal Jedinec(Jedinec old)

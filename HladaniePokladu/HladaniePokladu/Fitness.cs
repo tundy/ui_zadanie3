@@ -7,12 +7,14 @@ namespace HladaniePokladu
     {
         internal string CountFitness(Plocha plocha, int x, int y)
         {
+            Fitness = 0;
             var working = (byte[])Bunky.Clone();
+            var poklady = (bool[,])plocha.Poklad.Clone();
             var path = new StringBuilder();
             var index = 0;
             for (var i = 0; i < 500; i++)
             {
-
+                if (index >= 64) index = 0;
                 var value = working[index];
                 switch (value & 0b11_000000)
                 {
@@ -27,6 +29,12 @@ namespace HladaniePokladu
                         continue;
                     case 0b11_000000:
                         if (AddStep(plocha, ref x, ref y, working[value & 0b00_111111] & 0b11, path)) return path.ToString();
+                        if (poklady[x, y])
+                        {
+                            path.Append('$');
+                            if (++Fitness == plocha.PocetPokladov){ return path.ToString();}
+                            poklady[x, y] = false;
+                        }
                         break;
                     default:
                         throw new Exception();
