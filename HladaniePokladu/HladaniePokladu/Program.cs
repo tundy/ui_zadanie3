@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace HladaniePokladu
@@ -83,7 +82,7 @@ namespace HladaniePokladu
             }
         }
 
-        private static Jedinec ZatocRuletou(IEnumerable<Jedinec> sorted, int ruleta)
+        private static Jedinec ZatocRuletou(Jedinec[] sorted, int ruleta)
         {
             var last = 0;
             foreach (var jedinec in sorted)
