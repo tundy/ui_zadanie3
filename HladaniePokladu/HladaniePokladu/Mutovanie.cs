@@ -4,16 +4,14 @@ namespace HladaniePokladu
 {
     internal partial class Jedinec
     {
-        internal Jedinec Mutuj()
+        internal void Mutuj()
         {
-            var result = new Jedinec(this);
             var times = Rand.Next(1, 4);
             for (var i = 0; i < times; i++)
             {
                 var index = Rand.Next(64);
-                result[index] = (byte)Rand.Next(256);
+                Bunky[index] = (byte)Rand.Next(256);
             }
-            return result;
         }
 
         private static readonly Random Rand = new Random();

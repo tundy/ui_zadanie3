@@ -20,6 +20,7 @@ namespace HladaniePokladu
         // ReSharper disable once UnusedMember.Local
         private static void Main()
         {
+            var rand = new Random();
             var plocha = Plocha.CreatePlocha();
             var parts = Console.ReadLine().Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
             var x = int.Parse(parts[0]);
@@ -41,7 +42,6 @@ namespace HladaniePokladu
                     if (key.Key == ConsoleKey.Escape) return;
                     goto restart;
                 }
-                var rand = new Random();
                 var total = 0;
                 foreach (var jedinec in _aktualnaGeneracia)
                 {
@@ -68,11 +68,10 @@ namespace HladaniePokladu
                 {
                     var a = ZatocRuletou(sorted, rand.Next(total));
                     var b = ZatocRuletou(sorted, rand.Next(total));
-                    _novaGeneracia[index++] = a.Mutuj(b);
-                    if (index >= PocetJedincov) break;
-                    _novaGeneracia[index++] = a.Mutuj();
-                    if (index >= PocetJedincov) break;
-                    _novaGeneracia[index] = b.Mutuj();
+                    var novyJedinec = a.Mutuj(b);
+                    if (rand.Next(2) == 0)
+                        novyJedinec.Mutuj();
+                    _novaGeneracia[index] = novyJedinec;
                 }
                 Swap(ref _aktualnaGeneracia, ref _novaGeneracia);
                 Console.ForegroundColor = ConsoleColor.Cyan;
