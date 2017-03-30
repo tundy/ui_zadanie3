@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Timers;
 using System.Xml.Serialization;
 
 namespace HladaniePokladu
@@ -16,6 +18,9 @@ namespace HladaniePokladu
 
         private static Jedinec[] _aktualnaGeneracia;
         private static Jedinec[] _novaGeneracia;
+        private static readonly Timer StopTimer = new Timer{AutoReset = false};
+        private static bool _work = true;
+        private static bool _timer = false;
 
         // ReSharper disable once UnusedMember.Local
         private static void Main()
@@ -29,10 +34,22 @@ namespace HladaniePokladu
                 return;
             }
 
+            WriteSettings(settings);
+
+            if (settings.StopAfter.Typ == StopType.Seconds)
+            {
+                StopTimer.Interval = settings.StopAfter.Hodnota * 1000;
+                StopTimer.Elapsed += (sender, args) =>
+                {
+                    _work = false;
+                };
+                settings.StopAfter.Hodnota = int.MaxValue;
+                _timer = true;
+            }
+
             _aktualnaGeneracia = new Jedinec[settings.MaxJedincov];
             _novaGeneracia = new Jedinec[settings.MaxJedincov];
 
-            WriteSettings(settings);
             WriteHelp();
 
             var rand = new Random();
@@ -41,33 +58,59 @@ namespace HladaniePokladu
             var x = int.Parse(parts[0]);
             var y = int.Parse(parts[1]);
             restart:
+            if (_timer)
+            {
+                StopTimer.Stop();
+                StopTimer.Start();
+            }
             for (var i = 0; i < settings.MaxJedincov; ++i)
                 _aktualnaGeneracia[i] = new Jedinec(settings.InitRadnom);
             var generacia = 1;
             while (true)
             {
-                if (generacia == settings.MaxGeneracii)
+                if (!_work || generacia >= settings.StopAfter.Hodnota)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine($"Nenasiel som ciel po {settings.MaxGeneracii} generaciach.");
                     var jedinec = _aktualnaGeneracia[0];
                     var path = jedinec.CountFitness(plocha, x, y);
+                    Console.WriteLine();
+                    if(_timer) Console.WriteLine("TimedOut");
+                    Console.WriteLine($"Nenasiel som ciel po {generacia} generaciach.");
+                    PercentColor(jedinec.Fitness, plocha.PocetPokladov);
                     Console.WriteLine($"Poklady: {jedinec.Fitness} | Kroky: {path.Length - jedinec.Fitness} | Cesta: {path}");
+                    Console.ForegroundColor = ConsoleColor.White;
                     var key = Console.ReadKey(true);
                     if (key.Key == ConsoleKey.Escape) return;
+                    _work = true;
                     goto restart;
                 }
                 var total = 0;
-                foreach (var jedinec in _aktualnaGeneracia)
+                var locker = new object();
+                var writeLocker = new object();
+                var final = "";
+                var result = Parallel.ForEach(_aktualnaGeneracia, (jedinec, state) =>
                 {
                     var path = jedinec.CountFitness(plocha, x, y);
-                    PercentColor(jedinec.Fitness, plocha.PocetPokladov);
-                    Console.WriteLine($"{jedinec.Fitness} {path}");
+                    lock (writeLocker)
+                    {
+                        PercentColor(jedinec.Fitness, plocha.PocetPokladov);
+                        Console.WriteLine($"{jedinec.Fitness} {path}");
+                        total += jedinec.Fitness;
+                    }
+
+                    if (jedinec.Fitness != plocha.PocetPokladov || state.IsStopped) return;
+                    state.Stop();
+                    lock (locker)
+                        final = $"| Kroky: {path.Length - jedinec.Fitness} | Cesta: {path}";
+                });
+
+                if (!result.IsCompleted)
+                {
                     Console.ForegroundColor = ConsoleColor.White;
-                    total += jedinec.Fitness;
-                    if (jedinec.Fitness != plocha.PocetPokladov) continue;
                     Console.WriteLine();
-                    Console.WriteLine($"Gen: {generacia} | Kroky: {path.Length - jedinec.Fitness} | Cesta: {path}");
+                    Console.WriteLine("Nasiel som riesenie:");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"Gen: {generacia} {final}");
+                    Console.ForegroundColor = ConsoleColor.White;
                     var key = Console.ReadKey(true);
                     if (key.Key == ConsoleKey.Escape) return;
                     goto restart;
@@ -78,7 +121,7 @@ namespace HladaniePokladu
                 var index = 0;
                 if (settings.Elitarizmus.HasValue)
                 {
-                    var end = settings.Elitarizmus.Value.Typ == Type.Count
+                    var end = settings.Elitarizmus.Value.Typ == EliteType.Count
                         ? settings.Elitarizmus.Value.Hodnota
                         : settings.Elitarizmus.Value.Hodnota / settings.MaxJedincov * 100;
                     for (; index < (int)end; index++)
@@ -110,11 +153,13 @@ namespace HladaniePokladu
             Console.WriteLine("Nacitane nastavenia:");
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine($"Pocet jedincov pre jednu generaciu: {settings.MaxJedincov}");
-            Console.WriteLine($"Maximalny pocet generacii: {settings.MaxGeneracii}");
+            Console.WriteLine(settings.StopAfter.Typ == StopType.Generations
+                ? $"Maximalny pocet generacii: {settings.StopAfter.Hodnota}"
+                : $"Maximalny cas hladania: {settings.StopAfter.Hodnota} sec");
             Console.WriteLine($"Pocet nahodne inicializovanych buniek: {settings.InitRadnom}");
             Console.WriteLine($"Elitarizmus: {settings.Elitarizmus.HasValue}");
             if (settings.Elitarizmus.HasValue)
-                Console.WriteLine(settings.Elitarizmus.Value.Typ == Type.Percent
+                Console.WriteLine(settings.Elitarizmus.Value.Typ == EliteType.Percent
                     ? $"Top {settings.Elitarizmus.Value.Hodnota} percent"
                     : $"Top {settings.Elitarizmus.Value.Hodnota} jedincov");
             Console.WriteLine($"Minimalny index pre bod krizenia: {settings.BodKrizenia.Min}");
@@ -148,9 +193,9 @@ namespace HladaniePokladu
             {
                 settings = new Settings
                 {
-                    Elitarizmus = new Elitarizmus(10, Type.Count),
+                    Elitarizmus = new Elitarizmus(10, EliteType.Count),
                     BodKrizenia = new MaxMin(4, 60),
-                    MaxGeneracii = 200,
+                    StopAfter = new StopAfter(200, StopType.Generations),
                     MaxJedincov = 100,
                     InitRadnom = 16
                 };
