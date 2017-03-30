@@ -2,29 +2,23 @@
 {
     internal partial class Jedinec
     {
-        internal byte[] Bunky = new byte[64];
+        private readonly byte[] _bunky = new byte[64];
         internal int Fitness = 0;
 
-        internal Jedinec()
+        private Jedinec()
         {
         }
 
         internal Jedinec(int index)
         {
             for (var i = 0; i < index; i++)
-                Bunky[i] = (byte)Rand.Next(256);
+                _bunky[i] = (byte)Rand.Next(256);
         }
 
         internal Jedinec(Jedinec old)
         {
             for (var i = 0; i < 64; i++)
-                Bunky[i] = old[i];
-        }
-
-        public byte this[int index]
-        {
-            get { return Bunky[index]; }
-            set { Bunky[index] = value; }
+                _bunky[i] = old._bunky[i];
         }
     }
 }

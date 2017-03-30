@@ -10,21 +10,21 @@ namespace HladaniePokladu
             for (var i = 0; i < times; i++)
             {
                 var index = Rand.Next(64);
-                Bunky[index] = (byte)Rand.Next(256);
+                _bunky[index] = (byte)Rand.Next(256);
             }
         }
 
         private static readonly Random Rand = new Random();
 
-        internal Jedinec Mutuj(Jedinec other)
+        internal Jedinec Krizenie(Jedinec other, Settings settings)
         {
             var result = new Jedinec();
-            var point = Rand.Next(4, 60);
+            var point = Rand.Next(settings.BodKrizenia.Min, settings.BodKrizenia.Max);
             var i = 0;
             for (; i < point; i++)
-                result[i] = Bunky[i];
+                result._bunky[i] = _bunky[i];
             for (; i < 64; i++)
-                result[i] = other[i];
+                result._bunky[i] = other._bunky[i];
 
             return result;
         }

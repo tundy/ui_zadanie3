@@ -15,7 +15,7 @@ namespace HladaniePokladu
             return new Plocha(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
         }
 
-        private Plocha(int height, int width, int pocet)
+        private Plocha(int width, int height, int pocet)
         {
             Width = width;
             Height = height;

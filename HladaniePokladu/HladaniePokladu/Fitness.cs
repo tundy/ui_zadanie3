@@ -5,14 +5,16 @@ namespace HladaniePokladu
 {
     internal partial class Jedinec
     {
+        private const int MaxInstrukcii = 500;
+
         internal string CountFitness(Plocha plocha, int x, int y)
         {
             Fitness = 0;
-            var working = (byte[])Bunky.Clone();
+            var working = (byte[])_bunky.Clone();
             var poklady = (bool[,])plocha.Poklad.Clone();
             var path = new StringBuilder();
             var index = 0;
-            for (var i = 0; i < 500; i++)
+            for (var i = 0; i < MaxInstrukcii; i++)
             {
                 if (index >= 64) index = 0;
                 var value = working[index];
