@@ -3,7 +3,8 @@
     internal partial class Jedinec
     {
         private readonly byte[] _bunky = new byte[64];
-        internal int Fitness = 0;
+        internal double Fitness = 0;
+        internal int Poklady = 0;
 
         private Jedinec()
         {

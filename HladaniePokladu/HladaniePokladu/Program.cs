@@ -73,15 +73,16 @@ namespace HladaniePokladu
                     Console.WriteLine();
                     if (_timer) Console.WriteLine("TimedOut");
                     Console.WriteLine($"Nenasiel som ciel po {generacia} generaciach.");
-                    PercentColor(jedinec.Fitness, plocha.PocetPokladov);
+                    PercentColor(jedinec.Poklady, plocha.PocetPokladov);
                     Console.WriteLine(
-                        $"Poklady: {jedinec.Fitness} | Kroky: {path.Length - jedinec.Fitness} | Cesta: {path}");
+                        $"Poklady: {jedinec.Poklady} | Kroky: {path.Length - jedinec.Poklady} | Cesta: {path}");
                     Console.ForegroundColor = ConsoleColor.White;
                     var key = Console.ReadKey(true);
                     if (key.Key == ConsoleKey.Escape) return;
                     goto restart;
                 }
                 var total = 0;
+                var min = int.MaxValue;
                 var locker = new object();
                 var writeLocker = new object();
                 var final = "";
@@ -90,16 +91,20 @@ namespace HladaniePokladu
                     var path = jedinec.CountFitness(plocha, x, y);
                     lock (writeLocker)
                     {
-                        PercentColor(jedinec.Fitness, plocha.PocetPokladov);
-                        Console.WriteLine($"{jedinec.Fitness} {path}");
-                        total += jedinec.Fitness;
+                        PercentColor(jedinec.Poklady, plocha.PocetPokladov);
+                        Console.WriteLine($"{jedinec.Fitness:F2} {path}");
+                        jedinec.Fitness *= 1000;
+                        // ReSharper disable AccessToModifiedClosure
+                        total += (int) jedinec.Fitness;
+                        min = Math.Min((int) jedinec.Fitness, min);
+                        // ReSharper restore AccessToModifiedClosure
                     }
 
-                    if (jedinec.Fitness != plocha.PocetPokladov || state.IsStopped) return;
+                    if (jedinec.Poklady != plocha.PocetPokladov || state.IsStopped) return;
                     state.Stop();
                     lock (locker)
                     {
-                        final = $"| Kroky: {path.Length - jedinec.Fitness} | Cesta: {path}";
+                        final = $"| Kroky: {path.Length - jedinec.Poklady} | Cesta: {path}";
                     }
                 });
 
@@ -117,6 +122,10 @@ namespace HladaniePokladu
                 }
 
                 var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => jedinec.Fitness).ToArray();
+                --min;
+                foreach (var jedinec in sorted)
+                    jedinec.Fitness -= min;
+                total -= min * sorted.Length;
 
                 var index = 0;
                 if (settings.Elitarizmus.HasValue)
@@ -188,6 +197,7 @@ namespace HladaniePokladu
             {
                 var stream = File.Open("settings.xml", FileMode.Open);
                 settings = serializer.Deserialize(stream) as Settings;
+                stream.Close();
             }
             else
             {
@@ -210,9 +220,9 @@ namespace HladaniePokladu
             var last = 0;
             foreach (var jedinec in sorted)
             {
-                if (ruleta < jedinec.Fitness + last)
+                if (ruleta < (int) jedinec.Fitness + last)
                     return jedinec;
-                last += jedinec.Fitness;
+                last += (int) jedinec.Fitness;
             }
             return sorted.Last();
         }
