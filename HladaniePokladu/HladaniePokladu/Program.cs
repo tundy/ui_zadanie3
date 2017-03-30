@@ -9,18 +9,18 @@ namespace HladaniePokladu
 {
     internal static class Program
     {
+        private static Jedinec[] _aktualnaGeneracia;
+        private static Jedinec[] _novaGeneracia;
+        private static readonly Timer StopTimer = new Timer {AutoReset = false};
+        private static bool _work = true;
+        private static bool _timer;
+
         private static void Swap(ref Jedinec[] param1, ref Jedinec[] param2)
         {
             var temp = param1;
             param1 = param2;
             param2 = temp;
         }
-
-        private static Jedinec[] _aktualnaGeneracia;
-        private static Jedinec[] _novaGeneracia;
-        private static readonly Timer StopTimer = new Timer{AutoReset = false};
-        private static bool _work = true;
-        private static bool _timer = false;
 
         // ReSharper disable once UnusedMember.Local
         private static void Main()
@@ -39,10 +39,7 @@ namespace HladaniePokladu
             if (settings.StopAfter.Typ == StopType.Seconds)
             {
                 StopTimer.Interval = settings.StopAfter.Hodnota * 1000;
-                StopTimer.Elapsed += (sender, args) =>
-                {
-                    _work = false;
-                };
+                StopTimer.Elapsed += (sender, args) => { _work = false; };
                 settings.StopAfter.Hodnota = int.MaxValue;
                 _timer = true;
             }
@@ -54,13 +51,14 @@ namespace HladaniePokladu
 
             var rand = new Random();
             var plocha = Plocha.CreatePlocha();
-            var parts = Console.ReadLine().Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            var parts = Console.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
             var x = int.Parse(parts[0]);
             var y = int.Parse(parts[1]);
             restart:
             if (_timer)
             {
                 StopTimer.Stop();
+                _work = true;
                 StopTimer.Start();
             }
             for (var i = 0; i < settings.MaxJedincov; ++i)
@@ -73,14 +71,14 @@ namespace HladaniePokladu
                     var jedinec = _aktualnaGeneracia[0];
                     var path = jedinec.CountFitness(plocha, x, y);
                     Console.WriteLine();
-                    if(_timer) Console.WriteLine("TimedOut");
+                    if (_timer) Console.WriteLine("TimedOut");
                     Console.WriteLine($"Nenasiel som ciel po {generacia} generaciach.");
                     PercentColor(jedinec.Fitness, plocha.PocetPokladov);
-                    Console.WriteLine($"Poklady: {jedinec.Fitness} | Kroky: {path.Length - jedinec.Fitness} | Cesta: {path}");
+                    Console.WriteLine(
+                        $"Poklady: {jedinec.Fitness} | Kroky: {path.Length - jedinec.Fitness} | Cesta: {path}");
                     Console.ForegroundColor = ConsoleColor.White;
                     var key = Console.ReadKey(true);
                     if (key.Key == ConsoleKey.Escape) return;
-                    _work = true;
                     goto restart;
                 }
                 var total = 0;
@@ -100,7 +98,9 @@ namespace HladaniePokladu
                     if (jedinec.Fitness != plocha.PocetPokladov || state.IsStopped) return;
                     state.Stop();
                     lock (locker)
+                    {
                         final = $"| Kroky: {path.Length - jedinec.Fitness} | Cesta: {path}";
+                    }
                 });
 
                 if (!result.IsCompleted)
@@ -124,7 +124,7 @@ namespace HladaniePokladu
                     var end = settings.Elitarizmus.Value.Typ == EliteType.Count
                         ? settings.Elitarizmus.Value.Hodnota
                         : settings.Elitarizmus.Value.Hodnota / settings.MaxJedincov * 100;
-                    for (; index < (int)end; index++)
+                    for (; index < (int) end; index++)
                         _novaGeneracia[index] = sorted[index];
                 }
 
@@ -222,13 +222,13 @@ namespace HladaniePokladu
             var percent = fitness / (double) pocetPokladov * 100;
             if (percent < 20)
                 Console.ForegroundColor = ConsoleColor.DarkRed;
-            else if(percent < 40)
+            else if (percent < 40)
                 Console.ForegroundColor = ConsoleColor.Red;
-            else if(percent < 60)
+            else if (percent < 60)
                 Console.ForegroundColor = ConsoleColor.DarkYellow;
-            else if(percent < 80)
+            else if (percent < 80)
                 Console.ForegroundColor = ConsoleColor.Yellow;
-            else if(percent < 100)
+            else if (percent < 100)
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
             else
                 Console.ForegroundColor = ConsoleColor.Green;

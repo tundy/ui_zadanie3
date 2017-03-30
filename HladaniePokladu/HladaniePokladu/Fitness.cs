@@ -10,8 +10,8 @@ namespace HladaniePokladu
         internal string CountFitness(Plocha plocha, int x, int y)
         {
             Fitness = 0;
-            var working = (byte[])_bunky.Clone();
-            var poklady = (bool[,])plocha.Poklad.Clone();
+            var working = (byte[]) _bunky.Clone();
+            var poklady = (bool[,]) plocha.Poklad.Clone();
             var path = new StringBuilder();
             var index = 0;
             for (var i = 0; i < MaxInstrukcii; i++)
@@ -21,20 +21,27 @@ namespace HladaniePokladu
                 switch (value & 0b11_000000)
                 {
                     case 0b00_000000:
-                        unchecked { ++working[value & 0b00_111111]; }
+                        unchecked
+                        {
+                            ++working[value & 0b00_111111];
+                        }
                         break;
                     case 0b01_000000:
-                        unchecked { --working[value & 0b00_111111]; }
+                        unchecked
+                        {
+                            --working[value & 0b00_111111];
+                        }
                         break;
                     case 0b10_000000:
                         index = value & 0b00_111111;
                         continue;
                     case 0b11_000000:
-                        if (AddStep(plocha, ref x, ref y, working[value & 0b00_111111] & 0b11, path)) return path.ToString();
+                        if (AddStep(plocha, ref x, ref y, working[value & 0b00_111111] & 0b11, path))
+                            return path.ToString();
                         if (poklady[x, y])
                         {
                             path.Append('$');
-                            if (++Fitness == plocha.PocetPokladov){ return path.ToString();}
+                            if (++Fitness == plocha.PocetPokladov) return path.ToString();
                             poklady[x, y] = false;
                         }
                         break;
