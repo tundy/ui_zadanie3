@@ -91,17 +91,17 @@ namespace HladaniePokladu
                 VytvorNovuGeneraciu(settings, sorted, total);
                 Swap(ref _aktualnaGeneracia, ref _novaGeneracia);
 
-                NewGenerationSeparator();
+                NewGenerationSeparator(generacia);
             }
         }
 
         /// <summary>
         ///     Informuj ze zacala nova generacia
         /// </summary>
-        private static void NewGenerationSeparator()
+        private static void NewGenerationSeparator(int generacia)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("######################################################################");
+            Console.WriteLine($"################################### {generacia:000} ###################################");
             Console.ForegroundColor = ConsoleColor.White;
         }
 
