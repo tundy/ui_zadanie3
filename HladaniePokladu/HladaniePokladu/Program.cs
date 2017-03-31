@@ -115,8 +115,8 @@ namespace HladaniePokladu
         {
             var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => jedinec.Fitness).ToArray();
             var temp = Features.Quartiles(sorted);
-            var stat = new Stat(sorted[0].Fitness, sorted.Last().Fitness, (double) total / sorted.Length, temp.Item1,
-                temp.Item2, temp.Item3);
+            var stat = new Stat(sorted[0].Fitness, (double) total / sorted.Length, sorted.Last().Fitness,
+                temp.Item1, temp.Item2, temp.Item3);
             Stats.Add(stat);
 
             --min;
@@ -463,14 +463,14 @@ namespace HladaniePokladu
 
         private struct Stat
         {
-            public readonly double Max;
-            public readonly double Min;
+            public readonly int Max;
+            public readonly int Min;
             public readonly double Avg;
             public readonly double Median;
             public readonly double Uq;
             public readonly double Lq;
 
-            public Stat(double max, double min, double avg, double uq, double median, double lq)
+            public Stat(int max, double avg, int min, double uq, double median, double lq)
             {
                 Max = max;
                 Min = min;
