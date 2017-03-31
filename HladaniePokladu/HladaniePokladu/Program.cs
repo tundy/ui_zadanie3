@@ -395,7 +395,14 @@ namespace HladaniePokladu
             if (File.Exists("settings.xml"))
             {
                 var stream = File.Open("settings.xml", FileMode.Open);
-                settings = serializer.Deserialize(stream) as Settings;
+                try
+                {
+                    settings = serializer.Deserialize(stream) as Settings;
+                }
+                catch
+                {
+                    settings = null;
+                }
                 stream.Close();
             }
             else
