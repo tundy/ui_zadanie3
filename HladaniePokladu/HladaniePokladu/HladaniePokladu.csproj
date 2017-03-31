@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Features.cs" />
     <Compile Include="Fitness.cs" />
     <Compile Include="Jedinec.cs" />
     <Compile Include="Mutovanie.cs" />

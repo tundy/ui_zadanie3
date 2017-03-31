@@ -39,11 +39,11 @@ namespace HladaniePokladu
                     case 0b11_000000:
                         if (AddStep(plocha, ref x, ref y, working[value & 0b00_111111] & 0b11, path))
                             return path.ToString();
-                        Fitness -= 0.01;
+                        --Fitness;
                         if (poklady[x, y])
                         {
                             path.Append('$');
-                            ++Fitness;
+                            Fitness += 100;
                             if (++Poklady == plocha.PocetPokladov) return path.ToString();
                             poklady[x, y] = false;
                         }

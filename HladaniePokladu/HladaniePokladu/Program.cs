@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Xml.Serialization;
@@ -39,6 +40,8 @@ namespace HladaniePokladu
         ///     Randomiser
         /// </summary>
         private static readonly Random Rand = new Random();
+
+        private static readonly List<Stat> Stats = new List<Stat>();
 
         /// <summary>
         ///     Pomocna metoda pre vymanu novej generacie za aktualnu
@@ -110,7 +113,12 @@ namespace HladaniePokladu
         /// <returns>Vrati zoradeny zoznam jedincov</returns>
         private static Jedinec[] ZoradJedincov(int min, ref int total)
         {
-            var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => (int) jedinec.Fitness).ToArray();
+            var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => jedinec.Fitness).ToArray();
+            var temp = Features.Quartiles(sorted);
+            var stat = new Stat(sorted[0].Fitness, sorted.Last().Fitness, (double) total / sorted.Length, temp.Item1,
+                temp.Item2, temp.Item3);
+            Stats.Add(stat);
+
             --min;
             foreach (var jedinec in sorted)
                 jedinec.Fitness -= min;
@@ -177,6 +185,8 @@ namespace HladaniePokladu
             PercentColor(jedinec.Poklady, plocha.PocetPokladov);
             Console.WriteLine($"Poklady: {jedinec.Poklady} | Kroky: {path.Length - jedinec.Poklady} | Cesta: {path}");
             Console.ForegroundColor = ConsoleColor.White;
+
+            SaveStats();
         }
 
         /// <summary>
@@ -192,6 +202,21 @@ namespace HladaniePokladu
             Console.WriteLine(
                 $"Gen: {generacia} | Kroky: {final.Item2.Length - final.Item1.Poklady} | Cesta: {final.Item2}");
             Console.ForegroundColor = ConsoleColor.White;
+
+            SaveStats();
+        }
+
+        /// <summary>
+        /// Ulozi statistiku do subora
+        /// </summary>
+        private static void SaveStats()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Maximum\tPriemer\tMinimum\tHorny Kvartil\tMedian\tDolny Kvartil");
+            foreach (var stat in Stats)
+                sb.AppendLine(
+                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Uq}\t{stat.Median}\t{stat.Lq}");
+            File.WriteAllText("stats.txt", sb.ToString());
         }
 
         /// <summary>
@@ -202,6 +227,7 @@ namespace HladaniePokladu
         {
             CreateFirstGeneration(settings);
             ResetTimer();
+            Stats.Clear();
         }
 
         /// <summary>
@@ -264,6 +290,7 @@ namespace HladaniePokladu
             WriteHelp();
 
             plocha = Plocha.CreatePlocha();
+            // ReSharper disable once PossibleNullReferenceException
             var parts = Console.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
             x = int.Parse(parts[0]);
             y = int.Parse(parts[1]);
@@ -297,11 +324,10 @@ namespace HladaniePokladu
                 lock (writeLocker)
                 {
                     PercentColor(jedinec.Poklady, plocha.PocetPokladov);
-                    Console.WriteLine($"{jedinec.Fitness: 0.00;-0.00} {path}");
-                    jedinec.Fitness *= 1000;
+                    Console.WriteLine($"{jedinec.Fitness: 000;-000} {path}");
                     // ReSharper disable AccessToModifiedClosure
-                    tempTotal += (int) jedinec.Fitness;
-                    tempMin = Math.Min((int) jedinec.Fitness, tempMin);
+                    tempTotal += jedinec.Fitness;
+                    tempMin = Math.Min(jedinec.Fitness, tempMin);
                     // ReSharper restore AccessToModifiedClosure
                 }
 
@@ -399,9 +425,9 @@ namespace HladaniePokladu
             var last = 0;
             foreach (var jedinec in sorted)
             {
-                if (ruleta < (int) jedinec.Fitness + last)
+                if (ruleta < jedinec.Fitness + last)
                     return jedinec;
-                last += (int) jedinec.Fitness;
+                last += jedinec.Fitness;
             }
             return sorted.Last();
         }
@@ -426,6 +452,26 @@ namespace HladaniePokladu
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
             else
                 Console.ForegroundColor = ConsoleColor.Green;
+        }
+
+        private struct Stat
+        {
+            public readonly double Max;
+            public readonly double Min;
+            public readonly double Avg;
+            public readonly double Median;
+            public readonly double Uq;
+            public readonly double Lq;
+
+            public Stat(double max, double min, double avg, double uq, double median, double lq)
+            {
+                Max = max;
+                Min = min;
+                Avg = avg;
+                Median = median;
+                Uq = uq;
+                Lq = lq;
+            }
         }
     }
 }

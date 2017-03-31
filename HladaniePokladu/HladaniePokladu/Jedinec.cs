@@ -1,9 +1,13 @@
-﻿namespace HladaniePokladu
+﻿using System;
+using System.Diagnostics;
+
+namespace HladaniePokladu
 {
+    [DebuggerDisplay("{Fitness}")]
     internal partial class Jedinec
     {
         private readonly byte[] _bunky = new byte[64];
-        internal double Fitness = 0;
+        internal int Fitness = 0;
         internal int Poklady = 0;
 
         private Jedinec()
