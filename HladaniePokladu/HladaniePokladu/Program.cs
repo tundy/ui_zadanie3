@@ -51,7 +51,7 @@ namespace HladaniePokladu
             param1 = param2;
             param2 = temp;
         }
-        
+
         // ReSharper disable once UnusedMember.Local
         private static void Main()
         {
@@ -59,15 +59,15 @@ namespace HladaniePokladu
 
             restart:
             InitLoop(settings);
-            for (var generacia = 0;;)
+            for (var generacia = 1;;)
             {
                 ++generacia;
+
                 if (!_work || generacia >= settings.StopAfter.Hodnota)
                 {
                     PrintStopped(plocha, x, y, generacia);
 
-                    var key = Console.ReadKey(true);
-                    if (key.Key == ConsoleKey.Escape) return;
+                    if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
                     goto restart;
                 }
 
@@ -80,14 +80,12 @@ namespace HladaniePokladu
 
                     PrintResult(generacia, final);
 
-                    var key = Console.ReadKey(true);
-                    if (key.Key == ConsoleKey.Escape) return;
+                    if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
                     goto restart;
                 }
 
                 var sorted = ZoradJedincov(min, ref total);
-                var index = VyberElitu(settings, sorted);
-                VytvorNovuGeneraciu(index, settings, sorted, total);
+                VytvorNovuGeneraciu(settings, sorted, total);
                 Swap(ref _aktualnaGeneracia, ref _novaGeneracia);
 
                 NewGenerationSeparator();
@@ -123,12 +121,12 @@ namespace HladaniePokladu
         /// <summary>
         ///     Vytvori novu generaciu jedincov
         /// </summary>
-        /// <param name="index">Index od, kt. pokracuje pridavat jedincov do novej generacie</param>
         /// <param name="settings">Nastavenia algoritmu</param>
         /// <param name="sorted">Zoradeny zoznam jedincov</param>
         /// <param name="total">Fitness suma</param>
-        private static void VytvorNovuGeneraciu(int index, Settings settings, Jedinec[] sorted, int total)
+        private static void VytvorNovuGeneraciu(Settings settings, Jedinec[] sorted, int total)
         {
+            var index = VyberElitu(settings, sorted);
             for (; index < settings.MaxJedincov; index++)
             {
                 var a = NajdiJedinca(sorted, Rand.Next(total));
