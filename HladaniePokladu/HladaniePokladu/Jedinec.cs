@@ -18,12 +18,7 @@ namespace HladaniePokladu
         {
             for (var i = 0; i < index; i++)
                 _bunky[i] = (byte) Rand.Next(256);
-        }
-
-        internal Jedinec(Jedinec old)
-        {
-            for (var i = 0; i < 64; i++)
-                _bunky[i] = old._bunky[i];
+            ++BezMutacie;
         }
     }
 }

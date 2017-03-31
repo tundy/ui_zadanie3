@@ -116,8 +116,9 @@ namespace HladaniePokladu
             var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => jedinec.Fitness).ToArray();
             var temp = Features.Quartiles(sorted);
             var stat = new Stat(sorted[0].Fitness, (double) total / sorted.Length, sorted.Last().Fitness,
-                temp.Item1, temp.Item2, temp.Item3);
+                temp.Item1, temp.Item2, temp.Item3, Jedinec.BezMutacie, Jedinec.NahodnaBunka, Jedinec.XorBit);
             Stats.Add(stat);
+            Jedinec.ClearCounters();
 
             --min;
             foreach (var jedinec in sorted)
@@ -140,8 +141,7 @@ namespace HladaniePokladu
                 var a = NajdiJedinca(sorted, Rand.Next(total));
                 var b = NajdiJedinca(sorted, Rand.Next(total));
                 var novyJedinec = a.Krizenie(b, settings);
-                if (Rand.Next(2) == 0)
-                    novyJedinec.Mutuj();
+                novyJedinec.Mutuj(settings);
                 _novaGeneracia[index] = novyJedinec;
             }
         }
@@ -212,11 +212,12 @@ namespace HladaniePokladu
         private static void SaveStats()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Maximum\tPriemer\tMinimum\tHorny Kvartil\tMedian\tDolny Kvartil");
+            sb.AppendLine("Maximum\tPriemer\tMinimum\tHorny Kvartil\tMedian\tDolny Kvartil\tBez Mutacie\tNahodna Bunka\tXor Bit");
             foreach (var stat in Stats)
                 sb.AppendLine(
-                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Uq}\t{stat.Median}\t{stat.Lq}");
+                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Uq}\t{stat.Median}\t{stat.Lq}\t{stat.BezMutacie}\t{stat.NahodnaBunka}\t{stat.XorBit}");
             File.WriteAllText("stats.txt", sb.ToString());
+            Jedinec.ClearCounters();
         }
 
         /// <summary>
@@ -365,6 +366,7 @@ namespace HladaniePokladu
                     : $"Top {settings.Elitarizmus.Value.Hodnota} jedincov");
             Console.WriteLine($"Minimalny index pre bod krizenia: {settings.BodKrizenia.Min}");
             Console.WriteLine($"Maximalny index pre bod krizenia: {settings.BodKrizenia.Max}");
+            Console.WriteLine($"Pomer mutacii: {settings.PomerMutacie.BezMutacie}:{settings.PomerMutacie.NahodnaBunka}:{settings.PomerMutacie.XorNahodnyBit}");
             Console.WriteLine();
         }
 
@@ -410,10 +412,11 @@ namespace HladaniePokladu
                 settings = new Settings
                 {
                     Elitarizmus = new Elitarizmus(10, EliteType.Percent),
-                    BodKrizenia = new MaxMin(4, 60),
+                    BodKrizenia = new MaxMin(14, 50),
                     StopAfter = new StopAfter(20, StopType.Seconds),
                     MaxJedincov = 250,
-                    InitRadnom = 16
+                    InitRadnom = 16,
+                    PomerMutacie = new Mutation(1,2,3)
                 };
                 var stream = File.Open("settings.xml", FileMode.Create);
                 serializer.Serialize(stream, settings);
@@ -469,8 +472,11 @@ namespace HladaniePokladu
             public readonly double Median;
             public readonly double Uq;
             public readonly double Lq;
+            public readonly int BezMutacie;
+            public readonly int NahodnaBunka;
+            public readonly int XorBit;
 
-            public Stat(int max, double avg, int min, double uq, double median, double lq)
+            public Stat(int max, double avg, int min, double uq, double median, double lq, int bezMutacie, int nahodnaBunka, int xorBit)
             {
                 Max = max;
                 Min = min;
@@ -478,6 +484,9 @@ namespace HladaniePokladu
                 Median = median;
                 Uq = uq;
                 Lq = lq;
+                BezMutacie = bezMutacie;
+                NahodnaBunka = nahodnaBunka;
+                XorBit = xorBit;
             }
         }
     }

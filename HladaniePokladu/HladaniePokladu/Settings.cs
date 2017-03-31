@@ -5,14 +5,71 @@ namespace HladaniePokladu
     public class Settings
     {
         [XmlElement] public StopAfter StopAfter;
-
         [XmlElement(IsNullable = true)] public Elitarizmus? Elitarizmus;
-
         [XmlElement] public MaxMin BodKrizenia;
+
 
         [XmlAttribute] public int InitRadnom;
 
         [XmlAttribute] public int MaxJedincov;
+
+        [XmlElement] public Mutation PomerMutacie;
+    }
+
+    public class Mutation
+    {
+        private int _bezMutacie;
+        private int _nahodnaBunka;
+        private int _xorNahodnyBit;
+        [XmlIgnore] public int Total;
+
+        public Mutation()
+        {
+            
+        }
+
+        public Mutation(int bezMutacie, int nahodnaBunka, int xorNahodnyBit)
+        {
+            _bezMutacie = bezMutacie;
+            _nahodnaBunka = nahodnaBunka;
+            _xorNahodnyBit = xorNahodnyBit;
+        }
+
+        [XmlAttribute]
+        public int BezMutacie
+        {
+            get { return _bezMutacie; }
+            set
+            {
+                Total -= _bezMutacie;
+                _bezMutacie = value;
+                Total += value;
+            }
+        }
+
+        [XmlAttribute]
+        public int NahodnaBunka
+        {
+            get { return _nahodnaBunka; }
+            set
+            {
+                Total -= _nahodnaBunka;
+                _nahodnaBunka = value;
+                Total += value;
+            }
+        }
+
+        [XmlAttribute]
+        public int XorNahodnyBit
+        {
+            get { return _xorNahodnyBit; }
+            set
+            {
+                Total -= _xorNahodnyBit;
+                _xorNahodnyBit = value;
+                Total += value;
+            }
+        }
     }
 
     public struct StopAfter
