@@ -402,10 +402,10 @@ namespace HladaniePokladu
             {
                 settings = new Settings
                 {
-                    Elitarizmus = new Elitarizmus(10, EliteType.Count),
+                    Elitarizmus = new Elitarizmus(10, EliteType.Percent),
                     BodKrizenia = new MaxMin(4, 60),
-                    StopAfter = new StopAfter(200, StopType.Generations),
-                    MaxJedincov = 100,
+                    StopAfter = new StopAfter(20, StopType.Seconds),
+                    MaxJedincov = 250,
                     InitRadnom = 16
                 };
                 var stream = File.Open("settings.xml", FileMode.Create);
