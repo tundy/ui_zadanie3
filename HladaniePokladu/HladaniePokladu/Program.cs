@@ -159,7 +159,7 @@ namespace HladaniePokladu
             var index = 0;
             var end = settings.Elitarizmus.Value.Typ == EliteType.Count
                 ? settings.Elitarizmus.Value.Hodnota
-                : settings.Elitarizmus.Value.Hodnota / settings.MaxJedincov * 100;
+                : settings.Elitarizmus.Value.Hodnota / 100 * settings.MaxJedincov;
             for (; index < (int) end; index++)
                 _novaGeneracia[index] = sorted[index];
             return index;
