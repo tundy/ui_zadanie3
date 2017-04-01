@@ -8,6 +8,7 @@ namespace HladaniePokladu
         [XmlElement(IsNullable = true)] public Elitarizmus? Elitarizmus;
         [XmlElement] public MaxMin BodKrizenia;
 
+
         [XmlElement] public Fitness Fitness;
 
         [XmlAttribute] public int InitRadnom;
@@ -40,7 +41,6 @@ namespace HladaniePokladu
 
         public Mutation()
         {
-            
         }
 
         public Mutation(int bezMutacie, int nahodnaBunka, int xorNahodnyBit)

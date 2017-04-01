@@ -208,12 +208,13 @@ namespace HladaniePokladu
         }
 
         /// <summary>
-        /// Ulozi statistiku do subora
+        ///     Ulozi statistiku do subora
         /// </summary>
         private static void SaveStats()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Maximum\tPriemer\tMinimum\tHorny Kvartil\tMedian\tDolny Kvartil\tBez Mutacie\tNahodna Bunka\tXor Bit");
+            sb.AppendLine(
+                "Maximum\tPriemer\tMinimum\tHorny Kvartil\tMedian\tDolny Kvartil\tBez Mutacie\tNahodna Bunka\tXor Bit");
             foreach (var stat in Stats)
                 sb.AppendLine(
                     $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Uq}\t{stat.Median}\t{stat.Lq}\t{stat.BezMutacie}\t{stat.NahodnaBunka}\t{stat.XorBit}");
@@ -310,7 +311,8 @@ namespace HladaniePokladu
         /// <param name="min">Najmensi fitness</param>
         /// <param name="final">Jedinec, kt. sa podarilo najst cestu + cesta</param>
         /// <returns>Vysledok Parallel loop-u</returns>
-        private static ParallelLoopResult CalculateFitness(Plocha plocha, Settings settings, int x, int y, out int total, out int min, out Tuple<Jedinec, string> final)
+        private static ParallelLoopResult CalculateFitness(Plocha plocha, Settings settings, int x, int y, out int total,
+            out int min, out Tuple<Jedinec, string> final)
         {
             var tempTotal = 0;
             var tempMin = int.MaxValue;
@@ -367,8 +369,10 @@ namespace HladaniePokladu
                     : $"Top {settings.Elitarizmus.Value.Hodnota} jedincov");
             Console.WriteLine($"Minimalny index pre bod krizenia: {settings.BodKrizenia.Min}");
             Console.WriteLine($"Maximalny index pre bod krizenia: {settings.BodKrizenia.Max}");
-            Console.WriteLine($"Pomer mutacii: {settings.PomerMutacie.BezMutacie}:{settings.PomerMutacie.NahodnaBunka}:{settings.PomerMutacie.XorNahodnyBit}");
-            Console.WriteLine($"FITNESS | Poklad: +{settings.Fitness.Poklad} | Krok: -{settings.Fitness.Krok} | Vyjdenie mimo mriezky: -{settings.Fitness.VyjdenieMimoMriezky}");
+            Console.WriteLine(
+                $"Pomer mutacii: {settings.PomerMutacie.BezMutacie}:{settings.PomerMutacie.NahodnaBunka}:{settings.PomerMutacie.XorNahodnyBit}");
+            Console.WriteLine(
+                $"FITNESS | Poklad: +{settings.Fitness.Poklad} | Krok: -{settings.Fitness.Krok} | Vyjdenie mimo mriezky: -{settings.Fitness.VyjdenieMimoMriezky}");
             Console.WriteLine();
         }
 
@@ -416,10 +420,10 @@ namespace HladaniePokladu
                     Elitarizmus = new Elitarizmus(10, EliteType.Percent),
                     BodKrizenia = new MaxMin(14, 50),
                     StopAfter = new StopAfter(20, StopType.Seconds),
-                    Fitness = new Fitness(100,1,5),
+                    Fitness = new Fitness(100, 1, 5),
                     MaxJedincov = 250,
                     InitRadnom = 16,
-                    PomerMutacie = new Mutation(1,2,3)
+                    PomerMutacie = new Mutation(1, 2, 3)
                 };
                 var stream = File.Open("settings.xml", FileMode.Create);
                 serializer.Serialize(stream, settings);
@@ -479,7 +483,8 @@ namespace HladaniePokladu
             public readonly int NahodnaBunka;
             public readonly int XorBit;
 
-            public Stat(int max, double avg, int min, double uq, double median, double lq, int bezMutacie, int nahodnaBunka, int xorBit)
+            public Stat(int max, double avg, int min, double uq, double median, double lq, int bezMutacie,
+                int nahodnaBunka, int xorBit)
             {
                 Max = max;
                 Min = min;

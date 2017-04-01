@@ -28,14 +28,14 @@ namespace HladaniePokladu
             {
                 ++NahodnaBunka;
                 var index = Rand.Next(64);
-                _bunky[index] = (byte)Rand.Next(256);
+                _bunky[index] = (byte) Rand.Next(256);
             }
             else //if (random < (temp += settings.PomerMutacie.XorNahodnyBit))
             {
                 ++XorBit;
                 var index = Rand.Next(64);
                 var bit = 1 << Rand.Next(8);
-                _bunky[index] ^= (byte)bit;
+                _bunky[index] ^= (byte) bit;
             }
         }
 
