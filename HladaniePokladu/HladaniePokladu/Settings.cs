@@ -48,6 +48,7 @@ namespace HladaniePokladu
             _bezMutacie = bezMutacie;
             _nahodnaBunka = nahodnaBunka;
             _xorNahodnyBit = xorNahodnyBit;
+            Total = bezMutacie + nahodnaBunka + xorNahodnyBit;
         }
 
         [XmlAttribute]
