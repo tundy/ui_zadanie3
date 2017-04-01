@@ -68,13 +68,13 @@ namespace HladaniePokladu
 
                 if (!_work || generacia >= settings.StopAfter.Hodnota)
                 {
-                    PrintStopped(plocha, x, y, generacia);
+                    PrintStopped(plocha, settings, x, y, generacia);
 
                     if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
                     goto restart;
                 }
 
-                var result = CalculateFitness(plocha, x, y, out var total, out var min, out var final);
+                var result = CalculateFitness(plocha, settings, x, y, out var total, out var min, out var final);
 
                 if (!result.IsCompleted)
                 {
@@ -169,14 +169,15 @@ namespace HladaniePokladu
         ///     Neuspesne najdenie cesty
         /// </summary>
         /// <param name="plocha">Plocha, na kt. sa hladal poklad</param>
+        /// <param name="settings"></param>
         /// <param name="x">X-ova suradnica zaciatku</param>
         /// <param name="y">Y-ova suradnica zaciatku</param>
         /// <param name="generacia">Cislo generacie, v kt. sa to zastavilo</param>
-        private static void PrintStopped(Plocha plocha, int x, int y, int generacia)
+        private static void PrintStopped(Plocha plocha, Settings settings, int x, int y, int generacia)
         {
             var sorted = _aktualnaGeneracia.OrderByDescending(j => j.Fitness).ToArray();
             var jedinec = sorted[0];
-            var path = jedinec.CountFitness(plocha, x, y);
+            var path = jedinec.CountFitness(plocha, settings, x, y);
 
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine();
@@ -302,14 +303,14 @@ namespace HladaniePokladu
         ///     Spussti parallerny vypocet fitness
         /// </summary>
         /// <param name="plocha">Plocha, na kt. sa hladaju poklady</param>
+        /// <param name="settings"></param>
         /// <param name="x">X-ova zaciatocna suradnica</param>
         /// <param name="y">Y-ova zaciatocna suradnica</param>
         /// <param name="total">Suma fitness vsetkych jedincov</param>
         /// <param name="min">Najmensi fitness</param>
         /// <param name="final">Jedinec, kt. sa podarilo najst cestu + cesta</param>
         /// <returns>Vysledok Parallel loop-u</returns>
-        private static ParallelLoopResult CalculateFitness(Plocha plocha, int x, int y, out int total, out int min,
-            out Tuple<Jedinec, string> final)
+        private static ParallelLoopResult CalculateFitness(Plocha plocha, Settings settings, int x, int y, out int total, out int min, out Tuple<Jedinec, string> final)
         {
             var tempTotal = 0;
             var tempMin = int.MaxValue;
@@ -321,7 +322,7 @@ namespace HladaniePokladu
             var result = Parallel.ForEach(_aktualnaGeneracia, (jedinec, state) =>
             {
                 if (!_work) state.Stop();
-                var path = jedinec.CountFitness(plocha, x, y);
+                var path = jedinec.CountFitness(plocha, settings, x, y);
                 lock (writeLocker)
                 {
                     PercentColor(jedinec.Poklady, plocha.PocetPokladov);
@@ -359,7 +360,7 @@ namespace HladaniePokladu
                 ? $"Maximalny pocet generacii: {settings.StopAfter.Hodnota}"
                 : $"Maximalny cas hladania: {settings.StopAfter.Hodnota} sec");
             Console.WriteLine($"Pocet nahodne inicializovanych buniek: {settings.InitRadnom}");
-            Console.WriteLine($"Elitarizmus: {settings.Elitarizmus.HasValue}");
+            Console.WriteLine($"Elitarizmus: {(settings.Elitarizmus.HasValue ? "povoleny" : "zakazany")}");
             if (settings.Elitarizmus.HasValue)
                 Console.WriteLine(settings.Elitarizmus.Value.Typ == EliteType.Percent
                     ? $"Top {settings.Elitarizmus.Value.Hodnota} percent"
@@ -367,6 +368,7 @@ namespace HladaniePokladu
             Console.WriteLine($"Minimalny index pre bod krizenia: {settings.BodKrizenia.Min}");
             Console.WriteLine($"Maximalny index pre bod krizenia: {settings.BodKrizenia.Max}");
             Console.WriteLine($"Pomer mutacii: {settings.PomerMutacie.BezMutacie}:{settings.PomerMutacie.NahodnaBunka}:{settings.PomerMutacie.XorNahodnyBit}");
+            Console.WriteLine($"FITNESS | Poklad: +{settings.Fitness.Poklad} | Krok: -{settings.Fitness.Krok} | Vyjdenie mimo mriezky: -{settings.Fitness.VyjdenieMimoMriezky}");
             Console.WriteLine();
         }
 
@@ -414,6 +416,7 @@ namespace HladaniePokladu
                     Elitarizmus = new Elitarizmus(10, EliteType.Percent),
                     BodKrizenia = new MaxMin(14, 50),
                     StopAfter = new StopAfter(20, StopType.Seconds),
+                    Fitness = new Fitness(100,1,5),
                     MaxJedincov = 250,
                     InitRadnom = 16,
                     PomerMutacie = new Mutation(1,2,3)

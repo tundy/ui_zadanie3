@@ -7,7 +7,7 @@ namespace HladaniePokladu
     {
         private const int MaxInstrukcii = 500;
 
-        internal string CountFitness(Plocha plocha, int x, int y)
+        internal string CountFitness(Plocha plocha, Settings settings, int x, int y)
         {
             Fitness = 0;
             Poklady = 0;
@@ -38,12 +38,15 @@ namespace HladaniePokladu
                         continue;
                     case 0b11_000000:
                         if (AddStep(plocha, ref x, ref y, working[value & 0b00_111111] & 0b11, path))
+                        {
+                            Fitness -= settings.Fitness.VyjdenieMimoMriezky;
                             return path.ToString();
-                        --Fitness;
+                        }
+                        Fitness -= settings.Fitness.Krok;
                         if (poklady[x, y])
                         {
                             path.Append('$');
-                            Fitness += 100;
+                            Fitness += settings.Fitness.Poklad;
                             if (++Poklady == plocha.PocetPokladov) return path.ToString();
                             poklady[x, y] = false;
                         }

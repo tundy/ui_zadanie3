@@ -8,12 +8,27 @@ namespace HladaniePokladu
         [XmlElement(IsNullable = true)] public Elitarizmus? Elitarizmus;
         [XmlElement] public MaxMin BodKrizenia;
 
+        [XmlElement] public Fitness Fitness;
 
         [XmlAttribute] public int InitRadnom;
 
         [XmlAttribute] public int MaxJedincov;
 
         [XmlElement] public Mutation PomerMutacie;
+    }
+
+    public struct Fitness
+    {
+        [XmlAttribute] public int Poklad;
+        [XmlAttribute] public int Krok;
+        [XmlAttribute] public int VyjdenieMimoMriezky;
+
+        public Fitness(int poklad, int krok, int mimoMriezky)
+        {
+            Poklad = poklad;
+            Krok = krok;
+            VyjdenieMimoMriezky = mimoMriezky;
+        }
     }
 
     public class Mutation
