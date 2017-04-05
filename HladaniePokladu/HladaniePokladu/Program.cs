@@ -88,11 +88,35 @@ namespace HladaniePokladu
                 }
 
                 var sorted = ZoradJedincov(min, ref total);
+
+                if (settings.Output == OutputType.Top)
+                {
+                    PercentColor(sorted[0].Poklady, plocha.PocetPokladov);
+                    Console.WriteLine($"{sorted[0].Fitness: 000;-000} {sorted[0].CountFitness(plocha, settings, x, y)}");
+                }
+
+                //Extra(sorted, ref total);
                 VytvorNovuGeneraciu(settings, sorted, total);
                 Swap(ref _aktualnaGeneracia, ref _novaGeneracia);
 
-                NewGenerationSeparator(generacia);
+                if (settings.Output != OutputType.Result)
+                {
+                    NewGenerationSeparator(generacia);
+                }
+                else
+                {
+                    Console.CursorLeft = 0;
+                    Console.Write($"gen: {generacia}");
+                }
             }
+        }
+
+        private static void Extra(Jedinec[] sorted, ref int total)
+        {
+            var f = sorted.Length;
+            foreach (var jedinec in sorted)
+                jedinec.Fitness = f--;
+            total = ((1 + sorted.Length) * sorted.Length) / 2;
         }
 
         /// <summary>
@@ -116,7 +140,7 @@ namespace HladaniePokladu
             var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => jedinec.Fitness).ToArray();
             var temp = Features.Quartiles(sorted);
             var stat = new Stat(sorted[0].Fitness, (double) total / sorted.Length, sorted.Last().Fitness,
-                temp.Item1, temp.Item2, temp.Item3, Jedinec.BezMutacie, Jedinec.NahodnaBunka, Jedinec.XorBit);
+                temp.Item1, temp.Item2, temp.Item3, Jedinec.BezMutacie, Jedinec.NahodnaBunka, Jedinec.XorBit, Jedinec.XorBunka);
             Stats.Add(stat);
             Jedinec.ClearCounters();
 
@@ -214,10 +238,10 @@ namespace HladaniePokladu
         {
             var sb = new StringBuilder();
             sb.AppendLine(
-                "Maximum\tPriemer\tMinimum\tHorny Kvartil\tMedian\tDolny Kvartil\tBez Mutacie\tNahodna Bunka\tXor Bit");
+                "Maximum\tPriemer\tMinimum\tHorny Kvartil\tMedian\tDolny Kvartil\tBez Mutacie\tNahodna Bunka\tXor Bunka\tXor Bit");
             foreach (var stat in Stats)
                 sb.AppendLine(
-                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Uq}\t{stat.Median}\t{stat.Lq}\t{stat.BezMutacie}\t{stat.NahodnaBunka}\t{stat.XorBit}");
+                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Uq}\t{stat.Median}\t{stat.Lq}\t{stat.BezMutacie}\t{stat.NahodnaBunka}\t{stat.XorBunka}\t{stat.XorBit}");
             File.WriteAllText("stats.txt", sb.ToString());
             Jedinec.ClearCounters();
         }
@@ -327,8 +351,11 @@ namespace HladaniePokladu
                 var path = jedinec.CountFitness(plocha, settings, x, y);
                 lock (writeLocker)
                 {
-                    PercentColor(jedinec.Poklady, plocha.PocetPokladov);
-                    Console.WriteLine($"{jedinec.Fitness: 000;-000} {path}");
+                    if (settings.Output == OutputType.All)
+                    {
+                        PercentColor(jedinec.Poklady, plocha.PocetPokladov);
+                        Console.WriteLine($"{jedinec.Fitness: 000;-000} {path}");
+                    }
                     // ReSharper disable AccessToModifiedClosure
                     tempTotal += jedinec.Fitness;
                     tempMin = Math.Min(jedinec.Fitness, tempMin);
@@ -370,7 +397,7 @@ namespace HladaniePokladu
             Console.WriteLine($"Minimalny index pre bod krizenia: {settings.BodKrizenia.Min}");
             Console.WriteLine($"Maximalny index pre bod krizenia: {settings.BodKrizenia.Max}");
             Console.WriteLine(
-                $"Pomer mutacii: {settings.PomerMutacie.BezMutacie}:{settings.PomerMutacie.NahodnaBunka}:{settings.PomerMutacie.XorNahodnyBit}");
+                $"Pomer mutacii: {settings.PomerMutacie.BezMutacie}:{settings.PomerMutacie.NahodnaBunka}:{settings.PomerMutacie.XorNahodnaBunka}:{settings.PomerMutacie.XorNahodnyBit}");
             Console.WriteLine(
                 $"FITNESS | Poklad: +{settings.Fitness.Poklad} | Krok: -{settings.Fitness.Krok} | Vyjdenie mimo mriezky: -{settings.Fitness.VyjdenieMimoMriezky}");
             Console.WriteLine();
@@ -402,7 +429,7 @@ namespace HladaniePokladu
             var serializer = new XmlSerializer(typeof(Settings));
             if (File.Exists("settings.xml"))
             {
-                var stream = File.Open("settings.xml", FileMode.Open);
+                var stream = File.OpenRead("settings.xml");
                 try
                 {
                     settings = serializer.Deserialize(stream) as Settings;
@@ -415,16 +442,7 @@ namespace HladaniePokladu
             }
             else
             {
-                settings = new Settings
-                {
-                    Elitarizmus = new Elitarizmus(10, EliteType.Percent),
-                    BodKrizenia = new MaxMin(14, 50),
-                    StopAfter = new StopAfter(20, StopType.Seconds),
-                    Fitness = new Fitness(100, 1, 5),
-                    MaxJedincov = 250,
-                    InitRadnom = 16,
-                    PomerMutacie = new Mutation(1, 2, 3)
-                };
+                settings = Settings.DefaultSettings();
                 var stream = File.Open("settings.xml", FileMode.Create);
                 serializer.Serialize(stream, settings);
                 stream.Close();
@@ -482,9 +500,10 @@ namespace HladaniePokladu
             public readonly int BezMutacie;
             public readonly int NahodnaBunka;
             public readonly int XorBit;
+            public readonly int XorBunka;
 
             public Stat(int max, double avg, int min, double uq, double median, double lq, int bezMutacie,
-                int nahodnaBunka, int xorBit)
+                int nahodnaBunka, int xorBit, int xorBunka)
             {
                 Max = max;
                 Min = min;
@@ -495,6 +514,7 @@ namespace HladaniePokladu
                 BezMutacie = bezMutacie;
                 NahodnaBunka = nahodnaBunka;
                 XorBit = xorBit;
+                XorBunka = xorBunka;
             }
         }
     }
