@@ -70,7 +70,7 @@ namespace HladaniePokladu
                 {
                     PrintStopped(plocha, settings, x, y, generacia);
 
-                    if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
+                    if (SpracujVstup(ref settings, ref x, ref y, ref plocha)) return;
                     goto restart;
                 }
 
@@ -81,9 +81,9 @@ namespace HladaniePokladu
                     if (final == null || final.Item1.Poklady != plocha.PocetPokladov)
                         continue;
 
-                    PrintResult(generacia, final);
+                    PrintResult(settings, generacia, final);
 
-                    if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
+                    if (SpracujVstup(ref settings, ref x, ref y, ref plocha)) return;
                     goto restart;
                 }
 
@@ -111,13 +111,60 @@ namespace HladaniePokladu
             }
         }
 
+        /// <summary>
+        ///     Spracuj vstup z klavesnice
+        /// </summary>
+        /// <param name="settings">Nastavenia, kt. sa mozu aktualizovat</param>
+        /// <param name="x">X-ova zaciatocna poizica</param>
+        /// <param name="y">Y-ova zaciatocna pozicia</param>
+        /// <param name="plocha">Plocha, na kt. sa hladaju poklady</param>
+        /// <returns>Ci sa stlacil ESC</returns>
+        private static bool SpracujVstup(ref Settings settings, ref int x, ref int y, ref Plocha plocha)
+        {
+            for (;;)
+            {
+                Console.WriteLine();
+                Console.WriteLine("ESC - pre ukoncenie programu");
+                Console.WriteLine("S - pre znovu nacitanie nastaveni");
+                Console.WriteLine("P - pre znovu nacitanie pokladov");
+                Console.WriteLine("Hocico ine pre spustenie noveho hladania");
+                Console.WriteLine();
+
+                try
+                {
+                    var key = Console.ReadKey(true);
+                    // ReSharper disable once SwitchStatementMissingSomeCases
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.Escape:
+                            return true;
+                        case ConsoleKey.S:
+                            if (!Setup(out settings))
+                                return true;
+                            continue;
+                        case ConsoleKey.P:
+                            plocha = LoadPlocha(out x, out y);
+                            continue;
+                        default:
+                            return false;
+                    }
+                }
+                catch
+                {
+                    return true;
+                }
+            }
+        }
+
+/*
         private static void Extra(Jedinec[] sorted, ref int total)
         {
             var f = sorted.Length;
             foreach (var jedinec in sorted)
                 jedinec.Fitness = f--;
-            total = ((1 + sorted.Length) * sorted.Length) / 2;
+            total = (1 + sorted.Length) * sorted.Length / 2;
         }
+*/
 
         /// <summary>
         ///     Informuj ze zacala nova generacia
@@ -138,9 +185,18 @@ namespace HladaniePokladu
         private static Jedinec[] ZoradJedincov(int min, ref int total)
         {
             var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => jedinec.Fitness).ToArray();
-            var temp = Features.Quartiles(sorted);
+
+            var count = sorted.Length;
+            double median;
+            if (count == 0)
+                median = 0;
+            else if (count % 2 == 0)
+                median = (sorted[count / 2 - 1].Fitness + sorted[count / 2].Fitness) / 2d;
+            else
+                median = sorted[count / 2].Fitness;
+
             var stat = new Stat(sorted[0].Fitness, (double) total / sorted.Length, sorted.Last().Fitness,
-                temp.Item1, temp.Item2, temp.Item3, Jedinec.BezMutacie, Jedinec.NahodnaBunka, Jedinec.XorBit, Jedinec.XorBunka);
+                median, Jedinec.BezMutacie, Jedinec.NahodnaBunka, Jedinec.XorBit, Jedinec.XorBunka);
             Stats.Add(stat);
             Jedinec.ClearCounters();
 
@@ -193,7 +249,7 @@ namespace HladaniePokladu
         ///     Neuspesne najdenie cesty
         /// </summary>
         /// <param name="plocha">Plocha, na kt. sa hladal poklad</param>
-        /// <param name="settings"></param>
+        /// <param name="settings">Nastavenia algoritmu</param>
         /// <param name="x">X-ova suradnica zaciatku</param>
         /// <param name="y">Y-ova suradnica zaciatku</param>
         /// <param name="generacia">Cislo generacie, v kt. sa to zastavilo</param>
@@ -211,15 +267,16 @@ namespace HladaniePokladu
             Console.WriteLine($"Poklady: {jedinec.Poklady} | Kroky: {path.Length - jedinec.Poklady} | Cesta: {path}");
             Console.ForegroundColor = ConsoleColor.White;
 
-            SaveStats();
+            SaveStats(settings);
         }
 
         /// <summary>
         ///     Uspesne najdenie cesty
         /// </summary>
+        /// <param name="settings">Nastavenia algoritmu</param>
         /// <param name="generacia">Cisl generacie, v kt. sa nasla cesta</param>
         /// <param name="final">Finalny jedinec a cesta</param>
-        private static void PrintResult(int generacia, Tuple<Jedinec, string> final)
+        private static void PrintResult(Settings settings, int generacia, Tuple<Jedinec, string> final)
         {
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine($"{Environment.NewLine}Nasiel som riesenie:");
@@ -228,21 +285,21 @@ namespace HladaniePokladu
                 $"Gen: {generacia} | Kroky: {final.Item2.Length - final.Item1.Poklady} | Cesta: {final.Item2}");
             Console.ForegroundColor = ConsoleColor.White;
 
-            SaveStats();
+            SaveStats(settings);
         }
 
         /// <summary>
         ///     Ulozi statistiku do subora
         /// </summary>
-        private static void SaveStats()
+        private static void SaveStats(Settings settings)
         {
             var sb = new StringBuilder();
             sb.AppendLine(
-                "Maximum\tPriemer\tMinimum\tHorny Kvartil\tMedian\tDolny Kvartil\tBez Mutacie\tNahodna Bunka\tXor Bunka\tXor Bit");
+                "Maximum\tPriemer\tMinimum\tMedian\tBez Mutacie\tNahodna Bunka\tXor Bunka\tXor Bit");
             foreach (var stat in Stats)
                 sb.AppendLine(
-                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Uq}\t{stat.Median}\t{stat.Lq}\t{stat.BezMutacie}\t{stat.NahodnaBunka}\t{stat.XorBunka}\t{stat.XorBit}");
-            File.WriteAllText("stats.txt", sb.ToString());
+                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Median}\t{stat.BezMutacie}\t{stat.NahodnaBunka}\t{stat.XorBunka}\t{stat.XorBit}");
+            File.WriteAllText(settings.Stats, sb.ToString());
             Jedinec.ClearCounters();
         }
 
@@ -288,6 +345,57 @@ namespace HladaniePokladu
         /// <returns>Ci sa podarilo uspesne nacitat nastavenia</returns>
         private static bool Init(out Plocha plocha, out int x, out int y, out Settings settings)
         {
+            try
+            {
+                if (!Setup(out settings))
+                {
+                    x = -1;
+                    y = -1;
+                    plocha = null;
+                    return false;
+                }
+
+                plocha = LoadPlocha(out x, out y);
+                return true;
+            }
+            catch
+            {
+                x = -1;
+                y = -1;
+                settings = null;
+                plocha = null;
+                return false;
+            }
+        }
+
+        /// <summary>
+        ///     Nacita plochu zo vstupu
+        /// </summary>
+        /// <param name="x">X-ova zaciatocna poizica</param>
+        /// <param name="y">Y-ova zaciatocna pozicia</param>
+        /// <returns>
+        ///     Plocha, na kt. sa hladaju poklady<</returns>
+        private static Plocha LoadPlocha(out int x, out int y)
+        {
+            WritePlochaHelp();
+
+            var plocha = Plocha.CreatePlocha();
+            if (plocha == null)
+                throw new NullReferenceException();
+            // ReSharper disable once PossibleNullReferenceException
+            var parts = Console.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
+            x = int.Parse(parts[0]);
+            y = int.Parse(parts[1]);
+            return plocha;
+        }
+
+        /// <summary>
+        ///     Nacitaj nastavenia
+        /// </summary>
+        /// <param name="settings">Nastavenia, kt. sa nactiaju zo suboru</param>
+        /// <returns>Aktualne nastavenia</returns>
+        private static bool Setup(out Settings settings)
+        {
             LoadSettings(out settings);
 
             if (settings == null)
@@ -295,33 +403,33 @@ namespace HladaniePokladu
                 Console.WriteLine("Error loading settings");
                 Console.WriteLine("Press any key");
                 Console.ReadKey(true);
-                x = -1;
-                y = -1;
-                plocha = null;
                 return false;
             }
 
             WriteSettings(settings);
 
+            StopTimer.Elapsed -= OnStopTimerOnElapsed;
             if (settings.StopAfter.Typ == StopType.Seconds)
             {
                 StopTimer.Interval = settings.StopAfter.Hodnota * 1000;
-                StopTimer.Elapsed += (sender, args) => { _work = false; };
+                StopTimer.Elapsed += OnStopTimerOnElapsed;
                 settings.StopAfter.Hodnota = int.MaxValue;
                 _timer = true;
             }
 
             _aktualnaGeneracia = new Jedinec[settings.MaxJedincov];
             _novaGeneracia = new Jedinec[settings.MaxJedincov];
-
-            WriteHelp();
-
-            plocha = Plocha.CreatePlocha();
-            // ReSharper disable once PossibleNullReferenceException
-            var parts = Console.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
-            x = int.Parse(parts[0]);
-            y = int.Parse(parts[1]);
             return true;
+        }
+
+        /// <summary>
+        ///     Zastav cyklus po skonceni timer-u
+        /// </summary>
+        /// <param name="sender">Objekt, kt. zavola handler</param>
+        /// <param name="args">Argumenty timer-u</param>
+        private static void OnStopTimerOnElapsed(object sender, ElapsedEventArgs args)
+        {
+            _work = false;
         }
 
         /// <summary>
@@ -400,13 +508,14 @@ namespace HladaniePokladu
                 $"Pomer mutacii: {settings.PomerMutacie.BezMutacie}:{settings.PomerMutacie.NahodnaBunka}:{settings.PomerMutacie.XorNahodnaBunka}:{settings.PomerMutacie.XorNahodnyBit}");
             Console.WriteLine(
                 $"FITNESS | Poklad: +{settings.Fitness.Poklad} | Krok: -{settings.Fitness.Krok} | Vyjdenie mimo mriezky: -{settings.Fitness.VyjdenieMimoMriezky}");
+            Console.WriteLine($"Vystup statistiky: {settings.Stats}");
             Console.WriteLine();
         }
 
         /// <summary>
         ///     Vypis sposob nacitania Plochy
         /// </summary>
-        private static void WriteHelp()
+        private static void WritePlochaHelp()
         {
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("<Sirka> <Vyska> <PocetPokladov>");
@@ -495,22 +604,18 @@ namespace HladaniePokladu
             public readonly int Min;
             public readonly double Avg;
             public readonly double Median;
-            public readonly double Uq;
-            public readonly double Lq;
             public readonly int BezMutacie;
             public readonly int NahodnaBunka;
             public readonly int XorBit;
             public readonly int XorBunka;
 
-            public Stat(int max, double avg, int min, double uq, double median, double lq, int bezMutacie,
+            public Stat(int max, double avg, int min, double median, int bezMutacie,
                 int nahodnaBunka, int xorBit, int xorBunka)
             {
                 Max = max;
                 Min = min;
                 Avg = avg;
                 Median = median;
-                Uq = uq;
-                Lq = lq;
                 BezMutacie = bezMutacie;
                 NahodnaBunka = nahodnaBunka;
                 XorBit = xorBit;

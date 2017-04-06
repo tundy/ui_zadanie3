@@ -24,8 +24,15 @@ namespace HladaniePokladu
 
         internal static Plocha CreatePlocha()
         {
-            var parts = Console.ReadLine().Split(new[] {' '}, 3, StringSplitOptions.RemoveEmptyEntries);
-            return new Plocha(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
+            try
+            {
+                var parts = Console.ReadLine().Split(new[] {' '}, 3, StringSplitOptions.RemoveEmptyEntries);
+                return new Plocha(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

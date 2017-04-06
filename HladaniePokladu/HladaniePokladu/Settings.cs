@@ -8,15 +8,14 @@ namespace HladaniePokladu
         [XmlElement(IsNullable = true)] public Elitarizmus? Elitarizmus;
         [XmlElement] public MaxMin BodKrizenia;
 
-        [XmlAttribute] public OutputType Output;
-
         [XmlElement] public Fitness Fitness;
 
         [XmlAttribute] public int InitRadnom;
-
         [XmlAttribute] public int MaxJedincov;
-
+        [XmlAttribute] public OutputType Output;
         [XmlElement] public Mutation PomerMutacie;
+        [XmlAttribute] public string Stats;
+
 
         public static Settings DefaultSettings() => new Settings
         {
@@ -27,7 +26,8 @@ namespace HladaniePokladu
             Fitness = new Fitness(100, 1, 5),
             MaxJedincov = 250,
             InitRadnom = 16,
-            PomerMutacie = new Mutation(90, 2, 3, 5)
+            PomerMutacie = new Mutation(90, 2, 3, 5),
+            Stats = "stats.txt"
         };
     }
 
@@ -56,8 +56,8 @@ namespace HladaniePokladu
     {
         private int _bezMutacie;
         private int _nahodnaBunka;
-        private int _xorNahodnyBit;
         private int _xorNahodnaBunka;
+        private int _xorNahodnyBit;
         [XmlIgnore] public int Total;
 
         public Mutation()
