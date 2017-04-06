@@ -17,7 +17,6 @@ namespace HladaniePokladu
         {
             for (var i = 0; i < index; i++)
                 _bunky[i] = (byte) Rand.Next(256);
-            ++BezMutacie;
         }
     }
 }

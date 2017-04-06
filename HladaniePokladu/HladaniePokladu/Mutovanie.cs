@@ -5,18 +5,6 @@ namespace HladaniePokladu
     internal partial class Jedinec
     {
         private static readonly Random Rand = new Random();
-        public static int BezMutacie;
-        public static int NahodnaBunka;
-        public static int XorBit;
-        public static int XorBunka;
-
-        public static void ClearCounters()
-        {
-            BezMutacie = 0;
-            NahodnaBunka = 0;
-            XorBit = 0;
-            XorBunka = 0;
-        }
 
         internal void Mutuj(Settings settings)
         {
@@ -24,24 +12,20 @@ namespace HladaniePokladu
             var temp = 0;
             if (random < (temp += settings.PomerMutacie.BezMutacie))
             {
-                ++BezMutacie;
             }
             else if (random < (temp += settings.PomerMutacie.NahodnaBunka))
             {
-                ++NahodnaBunka;
                 var index = Rand.Next(64);
                 _bunky[index] = (byte) Rand.Next(256);
             }
             else if (random < (temp += settings.PomerMutacie.XorNahodnyBit))
             {
-                ++XorBit;
                 var index = Rand.Next(64);
                 var bit = 1 << Rand.Next(8);
                 _bunky[index] ^= (byte) bit;
             }
             else //if (random < (temp += settings.PomerMutacie.XorNahodnaBunka))
             {
-                ++XorBunka;
                 var index = Rand.Next(64);
                 _bunky[index] ^= 0xFF;
             }

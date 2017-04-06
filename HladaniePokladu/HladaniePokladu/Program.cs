@@ -195,10 +195,8 @@ namespace HladaniePokladu
             else
                 median = sorted[count / 2].Fitness;
 
-            var stat = new Stat(sorted[0].Fitness, (double) total / sorted.Length, sorted.Last().Fitness,
-                median, Jedinec.BezMutacie, Jedinec.NahodnaBunka, Jedinec.XorBit, Jedinec.XorBunka);
+            var stat = new Stat(sorted[0].Fitness, (double) total / sorted.Length, sorted.Last().Fitness, median);
             Stats.Add(stat);
-            Jedinec.ClearCounters();
 
             --min;
             foreach (var jedinec in sorted)
@@ -295,12 +293,11 @@ namespace HladaniePokladu
         {
             var sb = new StringBuilder();
             sb.AppendLine(
-                "Maximum\tPriemer\tMinimum\tMedian\tBez Mutacie\tNahodna Bunka\tXor Bunka\tXor Bit");
+                "Maximum\tPriemer\tMinimum\tMedian");
             foreach (var stat in Stats)
                 sb.AppendLine(
-                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Median}\t{stat.BezMutacie}\t{stat.NahodnaBunka}\t{stat.XorBunka}\t{stat.XorBit}");
+                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Median}");
             File.WriteAllText(settings.Stats, sb.ToString());
-            Jedinec.ClearCounters();
         }
 
         /// <summary>
@@ -604,22 +601,13 @@ namespace HladaniePokladu
             public readonly int Min;
             public readonly double Avg;
             public readonly double Median;
-            public readonly int BezMutacie;
-            public readonly int NahodnaBunka;
-            public readonly int XorBit;
-            public readonly int XorBunka;
 
-            public Stat(int max, double avg, int min, double median, int bezMutacie,
-                int nahodnaBunka, int xorBit, int xorBunka)
+            public Stat(int max, double avg, int min, double median)
             {
                 Max = max;
                 Min = min;
                 Avg = avg;
                 Median = median;
-                BezMutacie = bezMutacie;
-                NahodnaBunka = nahodnaBunka;
-                XorBit = xorBit;
-                XorBunka = xorBunka;
             }
         }
     }
