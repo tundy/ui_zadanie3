@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
-using System.Xml.Serialization;
 
 namespace HladaniePokladu
 {
-    internal static class Program
+    internal static partial class Program
     {
         /// <summary>
         ///     Aktualne spracovavana generacia
@@ -41,8 +38,6 @@ namespace HladaniePokladu
         /// </summary>
         private static readonly Random Rand = new Random();
 
-        private static readonly List<Stat> Stats = new List<Stat>();
-
         /// <summary>
         ///     Pomocna metoda pre vymanu novej generacie za aktualnu
         /// </summary>
@@ -58,100 +53,74 @@ namespace HladaniePokladu
         // ReSharper disable once UnusedMember.Local
         private static void Main()
         {
+            // Krok 1 až 4 podľa dokumentácie
             if (!Init(out var plocha, out var x, out var y, out var settings)) return;
 
-            restart:
-            InitLoop(settings);
-            for (var generacia = 1;;)
-            {
-                ++generacia;
-
-                if (!_work || generacia >= settings.StopAfter.Hodnota)
-                {
-                    PrintStopped(plocha, settings, x, y, generacia);
-
-                    if (SpracujVstup(ref settings, ref x, ref y, ref plocha)) return;
-                    goto restart;
-                }
-
-                var result = CalculateFitness(plocha, settings, x, y, out var total, out var min, out var final);
-
-                if (!result.IsCompleted)
-                {
-                    if (final == null || final.Item1.Poklady != plocha.PocetPokladov)
-                        continue;
-
-                    PrintResult(settings, generacia, final);
-
-                    if (SpracujVstup(ref settings, ref x, ref y, ref plocha)) return;
-                    goto restart;
-                }
-
-                var sorted = ZoradJedincov(min, ref total);
-
-                if (settings.Output == OutputType.Top)
-                {
-                    PercentColor(sorted[0].Poklady, plocha.PocetPokladov);
-                    Console.WriteLine($"{sorted[0].Fitness: 000;-000} {sorted[0].CountFitness(plocha, settings, x, y)}");
-                }
-
-                //Extra(sorted, ref total);
-                VytvorNovuGeneraciu(settings, sorted, total);
-                Swap(ref _aktualnaGeneracia, ref _novaGeneracia);
-
-                if (settings.Output != OutputType.Result)
-                {
-                    NewGenerationSeparator(generacia);
-                }
-                else
-                {
-                    Console.CursorLeft = 0;
-                    Console.Write($"gen: {generacia}");
-                }
-            }
-        }
-
-        /// <summary>
-        ///     Spracuj vstup z klavesnice
-        /// </summary>
-        /// <param name="settings">Nastavenia, kt. sa mozu aktualizovat</param>
-        /// <param name="x">X-ova zaciatocna poizica</param>
-        /// <param name="y">Y-ova zaciatocna pozicia</param>
-        /// <param name="plocha">Plocha, na kt. sa hladaju poklady</param>
-        /// <returns>Ci sa stlacil ESC</returns>
-        private static bool SpracujVstup(ref Settings settings, ref int x, ref int y, ref Plocha plocha)
-        {
             for (;;)
             {
-                Console.WriteLine();
-                Console.WriteLine("ESC - pre ukoncenie programu");
-                Console.WriteLine("S - pre znovu nacitanie nastaveni");
-                Console.WriteLine("P - pre znovu nacitanie pokladov");
-                Console.WriteLine("Hocico ine pre spustenie noveho hladania");
-                Console.WriteLine();
+                // (5) vytvor prvú generáciu
+                InitLoop(settings);
+                for (var generacia = 0;;)
+                {
+                    ++generacia;
 
-                try
-                {
-                    var key = Console.ReadKey(true);
-                    // ReSharper disable once SwitchStatementMissingSomeCases
-                    switch (key.Key)
+                    // (6) Ak presiel urceny cas na hladanie alebo presiahol max limit generacii: Skonci
+                    if (!_work || generacia >= settings.StopAfter.Hodnota)
                     {
-                        case ConsoleKey.Escape:
-                            return true;
-                        case ConsoleKey.S:
-                            if (!Setup(out settings))
-                                return true;
-                            continue;
-                        case ConsoleKey.P:
-                            plocha = LoadPlocha(out x, out y);
-                            continue;
-                        default:
-                            return false;
+                        // Vypis najlepsi vysledok
+                        PrintStopped(plocha, settings, x, y, generacia);
+
+                        // Nehcaj pouzivatela rozhodnut co dalej
+                        if (SpracujVstup(ref settings, ref x, ref y, ref plocha)) return;
+                        break;
                     }
-                }
-                catch
-                {
-                    return true;
+
+                    // (7) Urči Fitness pre aktuálnu generáciu
+                    var result = CalculateFitness(plocha, settings, x, y, out var final);
+
+                    // (8)
+                    if (!result.IsCompleted)
+                    {
+                        // (8.1)
+                        if (final == null || final.Item1.Poklady != plocha.PocetPokladov)
+                        {
+                            // niekde je chyba alebo som musel skoncit
+                            _work = false;
+                            continue;
+                        }
+
+                        // (8.2)
+                        PrintResult(settings, generacia, final);
+
+                        // (8.3)
+                        if (SpracujVstup(ref settings, ref x, ref y, ref plocha)) return;
+                        break;
+                    }
+
+                    // (9)
+                    var sorted = ZoradJedincov(out var total);
+
+                    if (settings.Output == OutputType.Top)
+                    {
+                        PercentColor(sorted[0].Poklady, plocha.PocetPokladov);
+                        Console.WriteLine(
+                            $"{sorted[0].Fitness: 000;-000} {sorted[0].DoStuff(plocha, settings, x, y)}");
+                    }
+
+                    //Extra(sorted, ref total);
+                    VytvorNovuGeneraciu(settings, sorted, total);
+                    // (13)
+                    Swap(ref _aktualnaGeneracia, ref _novaGeneracia);
+
+                    if (settings.Output != OutputType.Result)
+                    {
+                        NewGenerationSeparator(generacia);
+                    }
+                    else
+                    {
+                        Console.CursorLeft = 0;
+                        Console.Write($"gen: {generacia}");
+                    }
                 }
             }
         }
@@ -167,24 +136,22 @@ namespace HladaniePokladu
 */
 
         /// <summary>
-        ///     Informuj ze zacala nova generacia
-        /// </summary>
-        private static void NewGenerationSeparator(int generacia)
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"################################### {generacia:000} ###################################");
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-
-        /// <summary>
         ///     Zarovna fitness a zoradi jedincov
         /// </summary>
-        /// <param name="min">Najmensia fitness hodnota</param>
         /// <param name="total">Suma vsetkych fitness</param>
         /// <returns>Vrati zoradeny zoznam jedincov</returns>
-        private static Jedinec[] ZoradJedincov(int min, ref int total)
+        private static Jedinec[] ZoradJedincov(out int total)
         {
             var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => jedinec.Fitness).ToArray();
+
+            var min = sorted.Last().Fitness;
+            total = 0;
+            --min;
+            foreach (var jedinec in sorted)
+            {
+                jedinec.Fitness -= min;
+                total += jedinec.Fitness;
+            }
 
             var count = sorted.Length;
             double median;
@@ -198,10 +165,7 @@ namespace HladaniePokladu
             var stat = new Stat(sorted[0].Fitness, (double) total / sorted.Length, sorted.Last().Fitness, median);
             Stats.Add(stat);
 
-            --min;
-            foreach (var jedinec in sorted)
-                jedinec.Fitness -= min;
-            total -= min * sorted.Length;
+
             return sorted;
         }
 
@@ -213,12 +177,15 @@ namespace HladaniePokladu
         /// <param name="total">Fitness suma</param>
         private static void VytvorNovuGeneraciu(Settings settings, Jedinec[] sorted, int total)
         {
+            // (10)
             var index = VyberElitu(settings, sorted);
             for (; index < settings.MaxJedincov; index++)
             {
+                // (11)
                 var a = NajdiJedinca(sorted, Rand.Next(total));
                 var b = NajdiJedinca(sorted, Rand.Next(total));
                 var novyJedinec = a.Krizenie(b, settings);
+                // (12)
                 novyJedinec.Mutuj(settings);
                 _novaGeneracia[index] = novyJedinec;
             }
@@ -238,66 +205,10 @@ namespace HladaniePokladu
             var end = settings.Elitarizmus.Value.Typ == EliteType.Count
                 ? settings.Elitarizmus.Value.Hodnota
                 : settings.Elitarizmus.Value.Hodnota / 100 * settings.MaxJedincov;
+            end = Math.Min(end, settings.MaxJedincov);
             for (; index < (int) end; index++)
                 _novaGeneracia[index] = sorted[index];
             return index;
-        }
-
-        /// <summary>
-        ///     Neuspesne najdenie cesty
-        /// </summary>
-        /// <param name="plocha">Plocha, na kt. sa hladal poklad</param>
-        /// <param name="settings">Nastavenia algoritmu</param>
-        /// <param name="x">X-ova suradnica zaciatku</param>
-        /// <param name="y">Y-ova suradnica zaciatku</param>
-        /// <param name="generacia">Cislo generacie, v kt. sa to zastavilo</param>
-        private static void PrintStopped(Plocha plocha, Settings settings, int x, int y, int generacia)
-        {
-            var sorted = _aktualnaGeneracia.OrderByDescending(j => j.Fitness).ToArray();
-            var jedinec = sorted[0];
-            var path = jedinec.CountFitness(plocha, settings, x, y);
-
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine();
-            if (_timer) Console.WriteLine("TimedOut");
-            Console.WriteLine($"Nenasiel som ciel po {generacia} generaciach.");
-            PercentColor(jedinec.Poklady, plocha.PocetPokladov);
-            Console.WriteLine($"Poklady: {jedinec.Poklady} | Kroky: {path.Length - jedinec.Poklady} | Cesta: {path}");
-            Console.ForegroundColor = ConsoleColor.White;
-
-            SaveStats(settings);
-        }
-
-        /// <summary>
-        ///     Uspesne najdenie cesty
-        /// </summary>
-        /// <param name="settings">Nastavenia algoritmu</param>
-        /// <param name="generacia">Cisl generacie, v kt. sa nasla cesta</param>
-        /// <param name="final">Finalny jedinec a cesta</param>
-        private static void PrintResult(Settings settings, int generacia, Tuple<Jedinec, string> final)
-        {
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine($"{Environment.NewLine}Nasiel som riesenie:");
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(
-                $"Gen: {generacia} | Kroky: {final.Item2.Length - final.Item1.Poklady} | Cesta: {final.Item2}");
-            Console.ForegroundColor = ConsoleColor.White;
-
-            SaveStats(settings);
-        }
-
-        /// <summary>
-        ///     Ulozi statistiku do subora
-        /// </summary>
-        private static void SaveStats(Settings settings)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine(
-                "Maximum\tPriemer\tMinimum\tMedian");
-            foreach (var stat in Stats)
-                sb.AppendLine(
-                    $"{stat.Max}\t{stat.Avg}\t{stat.Min}\t{stat.Median}");
-            File.WriteAllText(settings.Stats, sb.ToString());
         }
 
         /// <summary>
@@ -333,93 +244,6 @@ namespace HladaniePokladu
         }
 
         /// <summary>
-        ///     Nacitaj nastavenia a plochu
-        /// </summary>
-        /// <param name="plocha">Plocha, na kt. sa hladaju poklady</param>
-        /// <param name="x">X-ova zaciatocna poizica</param>
-        /// <param name="y">Y-ova zaciatocna pozicia</param>
-        /// <param name="settings">Nacitane nastavenia</param>
-        /// <returns>Ci sa podarilo uspesne nacitat nastavenia</returns>
-        private static bool Init(out Plocha plocha, out int x, out int y, out Settings settings)
-        {
-            try
-            {
-                if (!Setup(out settings))
-                {
-                    x = -1;
-                    y = -1;
-                    plocha = null;
-                    return false;
-                }
-
-                plocha = LoadPlocha(out x, out y);
-                return true;
-            }
-            catch
-            {
-                x = -1;
-                y = -1;
-                settings = null;
-                plocha = null;
-                return false;
-            }
-        }
-
-        /// <summary>
-        ///     Nacita plochu zo vstupu
-        /// </summary>
-        /// <param name="x">X-ova zaciatocna poizica</param>
-        /// <param name="y">Y-ova zaciatocna pozicia</param>
-        /// <returns>
-        ///     Plocha, na kt. sa hladaju poklady<</returns>
-        private static Plocha LoadPlocha(out int x, out int y)
-        {
-            WritePlochaHelp();
-
-            var plocha = Plocha.CreatePlocha();
-            if (plocha == null)
-                throw new NullReferenceException();
-            // ReSharper disable once PossibleNullReferenceException
-            var parts = Console.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
-            x = int.Parse(parts[0]);
-            y = int.Parse(parts[1]);
-            return plocha;
-        }
-
-        /// <summary>
-        ///     Nacitaj nastavenia
-        /// </summary>
-        /// <param name="settings">Nastavenia, kt. sa nactiaju zo suboru</param>
-        /// <returns>Aktualne nastavenia</returns>
-        private static bool Setup(out Settings settings)
-        {
-            LoadSettings(out settings);
-
-            if (settings == null)
-            {
-                Console.WriteLine("Error loading settings");
-                Console.WriteLine("Press any key");
-                Console.ReadKey(true);
-                return false;
-            }
-
-            WriteSettings(settings);
-
-            StopTimer.Elapsed -= OnStopTimerOnElapsed;
-            if (settings.StopAfter.Typ == StopType.Seconds)
-            {
-                StopTimer.Interval = settings.StopAfter.Hodnota * 1000;
-                StopTimer.Elapsed += OnStopTimerOnElapsed;
-                settings.StopAfter.Hodnota = int.MaxValue;
-                _timer = true;
-            }
-
-            _aktualnaGeneracia = new Jedinec[settings.MaxJedincov];
-            _novaGeneracia = new Jedinec[settings.MaxJedincov];
-            return true;
-        }
-
-        /// <summary>
         ///     Zastav cyklus po skonceni timer-u
         /// </summary>
         /// <param name="sender">Objekt, kt. zavola handler</param>
@@ -430,43 +254,39 @@ namespace HladaniePokladu
         }
 
         /// <summary>
-        ///     Spussti parallerny vypocet fitness
+        ///     Spusti parallerny vypocet fitness
         /// </summary>
         /// <param name="plocha">Plocha, na kt. sa hladaju poklady</param>
         /// <param name="settings"></param>
         /// <param name="x">X-ova zaciatocna suradnica</param>
         /// <param name="y">Y-ova zaciatocna suradnica</param>
-        /// <param name="total">Suma fitness vsetkych jedincov</param>
-        /// <param name="min">Najmensi fitness</param>
         /// <param name="final">Jedinec, kt. sa podarilo najst cestu + cesta</param>
         /// <returns>Vysledok Parallel loop-u</returns>
-        private static ParallelLoopResult CalculateFitness(Plocha plocha, Settings settings, int x, int y, out int total,
-            out int min, out Tuple<Jedinec, string> final)
+        private static ParallelLoopResult CalculateFitness(Plocha plocha, Settings settings, int x, int y,
+            out Tuple<Jedinec, string> final)
         {
-            var tempTotal = 0;
-            var tempMin = int.MaxValue;
             Tuple<Jedinec, string> tempFinal = null;
 
             var writeLocker = new object();
             var locker = new object();
 
+            // (7)
             var result = Parallel.ForEach(_aktualnaGeneracia, (jedinec, state) =>
             {
+                // (7.1)
                 if (!_work) state.Stop();
-                var path = jedinec.CountFitness(plocha, settings, x, y);
-                lock (writeLocker)
+                // (7.2)
+                var path = jedinec.DoStuff(plocha, settings, x, y);
+                if (settings.Output == OutputType.All)
                 {
-                    if (settings.Output == OutputType.All)
+                    PercentColor(jedinec.Poklady, plocha.PocetPokladov);
+                    lock (writeLocker)
                     {
-                        PercentColor(jedinec.Poklady, plocha.PocetPokladov);
                         Console.WriteLine($"{jedinec.Fitness: 000;-000} {path}");
                     }
-                    // ReSharper disable AccessToModifiedClosure
-                    tempTotal += jedinec.Fitness;
-                    tempMin = Math.Min(jedinec.Fitness, tempMin);
-                    // ReSharper restore AccessToModifiedClosure
                 }
 
+                // (7.3)
                 if (jedinec.Poklady != plocha.PocetPokladov || state.IsStopped) return;
                 state.Stop();
                 lock (locker)
@@ -474,85 +294,8 @@ namespace HladaniePokladu
                     tempFinal = new Tuple<Jedinec, string>(jedinec, path);
                 }
             });
-            total = tempTotal;
-            min = tempMin;
             final = tempFinal;
             return result;
-        }
-
-        /// <summary>
-        ///     Vypis aktualne nastavenia algoritmu
-        /// </summary>
-        /// <param name="settings"></param>
-        private static void WriteSettings(Settings settings)
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("Nacitane nastavenia:");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine($"Pocet jedincov pre jednu generaciu: {settings.MaxJedincov}");
-            Console.WriteLine(settings.StopAfter.Typ == StopType.Generations
-                ? $"Maximalny pocet generacii: {settings.StopAfter.Hodnota}"
-                : $"Maximalny cas hladania: {settings.StopAfter.Hodnota} sec");
-            Console.WriteLine($"Pocet nahodne inicializovanych buniek: {settings.InitRadnom}");
-            Console.WriteLine($"Elitarizmus: {(settings.Elitarizmus.HasValue ? "povoleny" : "zakazany")}");
-            if (settings.Elitarizmus.HasValue)
-                Console.WriteLine(settings.Elitarizmus.Value.Typ == EliteType.Percent
-                    ? $"Top {settings.Elitarizmus.Value.Hodnota} percent"
-                    : $"Top {settings.Elitarizmus.Value.Hodnota} jedincov");
-            Console.WriteLine($"Minimalny index pre bod krizenia: {settings.BodKrizenia.Min}");
-            Console.WriteLine($"Maximalny index pre bod krizenia: {settings.BodKrizenia.Max}");
-            Console.WriteLine(
-                $"Pomer mutacii: {settings.PomerMutacie.BezMutacie}:{settings.PomerMutacie.NahodnaBunka}:{settings.PomerMutacie.XorNahodnaBunka}:{settings.PomerMutacie.XorNahodnyBit}");
-            Console.WriteLine(
-                $"FITNESS | Poklad: +{settings.Fitness.Poklad} | Krok: -{settings.Fitness.Krok} | Vyjdenie mimo mriezky: -{settings.Fitness.VyjdenieMimoMriezky}");
-            Console.WriteLine($"Vystup statistiky: {settings.Stats}");
-            Console.WriteLine();
-        }
-
-        /// <summary>
-        ///     Vypis sposob nacitania Plochy
-        /// </summary>
-        private static void WritePlochaHelp()
-        {
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("<Sirka> <Vyska> <PocetPokladov>");
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine("<x> <y> // pokladu 1");
-            Console.WriteLine("<x> <y> // pokladu 2");
-            Console.WriteLine("...");
-            Console.WriteLine("<x> <y> // pokladu n");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("<x> <y> // Zaciatocna pozicia");
-            Console.WriteLine();
-        }
-
-        /// <summary>
-        ///     Nacitaj nastavenia zo suboru
-        /// </summary>
-        /// <param name="settings">Vysledne nastavenia</param>
-        private static void LoadSettings(out Settings settings)
-        {
-            var serializer = new XmlSerializer(typeof(Settings));
-            if (File.Exists("settings.xml"))
-            {
-                var stream = File.OpenRead("settings.xml");
-                try
-                {
-                    settings = serializer.Deserialize(stream) as Settings;
-                }
-                catch
-                {
-                    settings = null;
-                }
-                stream.Close();
-            }
-            else
-            {
-                settings = Settings.DefaultSettings();
-                var stream = File.Open("settings.xml", FileMode.Create);
-                serializer.Serialize(stream, settings);
-                stream.Close();
-            }
         }
 
         /// <summary>
@@ -571,44 +314,6 @@ namespace HladaniePokladu
                 last += jedinec.Fitness;
             }
             return sorted.Last();
-        }
-
-        /// <summary>
-        ///     Zafarbi vystup na zaklade poctu najdenych pokladov
-        /// </summary>
-        /// <param name="najdenePoklady">Pocet najdenych pokladov</param>
-        /// <param name="pocetPokladov">Celkovy pocet pokladov</param>
-        private static void PercentColor(int najdenePoklady, int pocetPokladov)
-        {
-            var percent = najdenePoklady / (double) pocetPokladov * 100;
-            if (percent < 20)
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-            else if (percent < 40)
-                Console.ForegroundColor = ConsoleColor.Red;
-            else if (percent < 60)
-                Console.ForegroundColor = ConsoleColor.DarkYellow;
-            else if (percent < 80)
-                Console.ForegroundColor = ConsoleColor.Yellow;
-            else if (percent < 100)
-                Console.ForegroundColor = ConsoleColor.DarkGreen;
-            else
-                Console.ForegroundColor = ConsoleColor.Green;
-        }
-
-        private struct Stat
-        {
-            public readonly int Max;
-            public readonly int Min;
-            public readonly double Avg;
-            public readonly double Median;
-
-            public Stat(int max, double avg, int min, double median)
-            {
-                Max = max;
-                Min = min;
-                Avg = avg;
-                Median = median;
-            }
         }
     }
 }

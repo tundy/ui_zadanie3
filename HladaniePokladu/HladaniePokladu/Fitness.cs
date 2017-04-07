@@ -7,37 +7,45 @@ namespace HladaniePokladu
     {
         private const int MaxInstrukcii = 500;
 
-        internal string CountFitness(Plocha plocha, Settings settings, int x, int y)
+        private const int Increment = 0b00_000000;
+        private const int Decrement = 0b01_000000;
+        private const int Jump = 0b10_000000;
+        private const int Print = 0b11_000000;
+
+        private static int GetAddress(int value) => value & 0b00_111111;
+        private static int GetInstruction(int value) => value & 0b11_000000;
+
+        internal string DoStuff(Plocha plocha, Settings settings, int x, int y)
         {
             Fitness = 0;
             Poklady = 0;
             var working = (byte[]) _bunky.Clone();
             var poklady = (bool[,]) plocha.Poklad.Clone();
             var path = new StringBuilder();
-            var index = 0;
-            for (var i = 0; i < MaxInstrukcii; i++)
+            for (int i = 0, index = 0; i < MaxInstrukcii; i++)
             {
                 if (index >= 64) index = 0;
                 var value = working[index];
-                switch (value & 0b11_000000)
+                var ins = GetInstruction(value);
+                switch (ins)
                 {
-                    case 0b00_000000:
+                    case Increment:
                         unchecked
                         {
-                            ++working[value & 0b00_111111];
+                            ++working[GetAddress(value)];
                         }
                         break;
-                    case 0b01_000000:
+                    case Decrement:
                         unchecked
                         {
-                            --working[value & 0b00_111111];
+                            --working[GetAddress(value)];
                         }
                         break;
-                    case 0b10_000000:
-                        index = value & 0b00_111111;
+                    case Jump:
+                        index = GetAddress(value);
                         continue;
-                    case 0b11_000000:
-                        if (AddStep(plocha, ref x, ref y, working[value & 0b00_111111] & 0b11, path))
+                    case Print:
+                        if (AddStep(plocha, ref x, ref y, working[GetAddress(value)] & 0b11, path))
                         {
                             Fitness -= settings.Fitness.VyjdenieMimoMriezky;
                             return path.ToString();
@@ -52,7 +60,7 @@ namespace HladaniePokladu
                         }
                         break;
                     default:
-                        throw new Exception();
+                        throw new Exception("Unknown instruction");
                 }
                 ++index;
             }
