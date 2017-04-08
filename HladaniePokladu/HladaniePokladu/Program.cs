@@ -144,15 +144,6 @@ namespace HladaniePokladu
         {
             var sorted = _aktualnaGeneracia.OrderByDescending(jedinec => jedinec.Fitness).ToArray();
 
-            var min = sorted.Last().Fitness;
-            total = 0;
-            --min;
-            foreach (var jedinec in sorted)
-            {
-                jedinec.Fitness -= min;
-                total += jedinec.Fitness;
-            }
-
             var count = sorted.Length;
             double median;
             if (count == 0)
@@ -161,8 +152,17 @@ namespace HladaniePokladu
                 median = (sorted[count / 2 - 1].Fitness + sorted[count / 2].Fitness) / 2d;
             else
                 median = sorted[count / 2].Fitness;
+            var max = sorted[0].Fitness;
+            var min = sorted.Last().Fitness;
+            total = 0;
+            --min;
+            foreach (var jedinec in sorted)
+            {
+                total += jedinec.Fitness;
+                jedinec.Fitness -= min;
+            }
 
-            var stat = new Stat(sorted[0].Fitness, (double) total / sorted.Length, sorted.Last().Fitness, median);
+            var stat = new Stat(max, (double) total / sorted.Length, ++min, median);
             Stats.Add(stat);
 
 
