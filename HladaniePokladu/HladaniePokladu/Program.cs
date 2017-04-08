@@ -107,7 +107,6 @@ namespace HladaniePokladu
                             $"{sorted[0].Fitness: 000;-000} {sorted[0].DoStuff(plocha, settings, x, y)}");
                     }
 
-                    //Extra(sorted, ref total);
                     VytvorNovuGeneraciu(settings, sorted, total);
                     // (13)
                     Swap(ref _aktualnaGeneracia, ref _novaGeneracia);
@@ -124,16 +123,6 @@ namespace HladaniePokladu
                 }
             }
         }
-
-/*
-        private static void Extra(Jedinec[] sorted, ref int total)
-        {
-            var f = sorted.Length;
-            foreach (var jedinec in sorted)
-                jedinec.Fitness = f--;
-            total = (1 + sorted.Length) * sorted.Length / 2;
-        }
-*/
 
         /// <summary>
         ///     Zarovna fitness a zoradi jedincov
@@ -184,11 +173,25 @@ namespace HladaniePokladu
                 // (11)
                 var a = NajdiJedinca(sorted, Rand.Next(total));
                 var b = NajdiJedinca(sorted, Rand.Next(total));
+
+                /*var a = Turnaj(sorted);
+                var b = Turnaj(sorted);*/
                 var novyJedinec = a.Krizenie(b, settings);
                 // (12)
                 novyJedinec.Mutuj(settings);
                 _novaGeneracia[index] = novyJedinec;
             }
+        }
+
+        private static Jedinec Turnaj(Jedinec[] sorted)
+        {
+            var a = sorted[Rand.Next(sorted.Length)];
+            var b = sorted[Rand.Next(sorted.Length)];
+            if(a.Fitness>b.Fitness)
+                b = sorted[Rand.Next(sorted.Length)];
+            else
+                a = sorted[Rand.Next(sorted.Length)];
+            return a.Fitness > b.Fitness ? a : b;
         }
 
         /// <summary>
