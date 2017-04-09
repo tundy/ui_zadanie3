@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
@@ -107,7 +108,9 @@ namespace HladaniePokladu
                             $"{sorted[0].Fitness: 000;-000} {sorted[0].DoStuff(plocha, settings, x, y)}");
                     }
 
-                    VytvorNovuGeneraciu(settings, sorted, total);
+                    // (10)
+                    var index = VyberElitu(settings, sorted);
+                    VytvorNovuGeneraciu(settings, _aktualnaGeneracia, index, total);
                     // (13)
                     Swap(ref _aktualnaGeneracia, ref _novaGeneracia);
 
@@ -143,15 +146,18 @@ namespace HladaniePokladu
                 median = sorted[count / 2].Fitness;
             var max = sorted[0].Fitness;
             var min = sorted.Last().Fitness;
+            var sum = 0;
+
             total = 0;
             --min;
             foreach (var jedinec in sorted)
             {
-                total += jedinec.Fitness;
+                sum += jedinec.Fitness;
                 jedinec.Fitness -= min;
+                total += jedinec.Fitness;
             }
 
-            var stat = new Stat(max, (double) total / sorted.Length, ++min, median);
+            var stat = new Stat(max, (double) sum / sorted.Length, ++min, median);
             Stats.Add(stat);
 
 
@@ -162,36 +168,63 @@ namespace HladaniePokladu
         ///     Vytvori novu generaciu jedincov
         /// </summary>
         /// <param name="settings">Nastavenia algoritmu</param>
-        /// <param name="sorted">Zoradeny zoznam jedincov</param>
+        /// <param name="populacia">Zoradeny zoznam jedincov</param>
+        /// <param name="index">Index od kt pokracuje naplnat novu generaciu</param>
         /// <param name="total">Fitness suma</param>
-        private static void VytvorNovuGeneraciu(Settings settings, Jedinec[] sorted, int total)
+        private static void VytvorNovuGeneraciu(Settings settings, Jedinec[] populacia, int index, int total)
         {
-            // (10)
-            var index = VyberElitu(settings, sorted);
-            for (; index < settings.MaxJedincov; index++)
-            {
-                // (11)
-                var a = NajdiJedinca(sorted, Rand.Next(total));
-                var b = NajdiJedinca(sorted, Rand.Next(total));
+            /*Parallel.For(index, settings.MaxJedincov,
+                i =>
+                {
+                    Jedinec a, b;
+                    // (11)
+                    if (settings.SelectionType == SelectionType.Ruleta)
+                        Ruleta(populacia, total, out a, out b);
+                    else
+                        Turnaj(populacia, out a, out b);
 
-                /*var a = Turnaj(sorted);
-                var b = Turnaj(sorted);*/
+                    var novyJedinec = a.Krizenie(b, settings);
+                    // (12)
+                    novyJedinec.Mutuj(settings);
+                    _novaGeneracia[i] = novyJedinec;
+                }
+                );*/
+            for(var i = index; i < settings.MaxJedincov; i++)
+            {
+                Jedinec a, b;
+                // (11)
+                if (settings.SelectionType == SelectionType.Ruleta)
+                    Ruleta(populacia, total, out a, out b);
+                else
+                    Turnaj(populacia, out a, out b);
+
                 var novyJedinec = a.Krizenie(b, settings);
                 // (12)
                 novyJedinec.Mutuj(settings);
-                _novaGeneracia[index] = novyJedinec;
+                _novaGeneracia[i] = novyJedinec;
             }
         }
 
-        private static Jedinec Turnaj(Jedinec[] sorted)
+        /// <summary>
+        /// Vyber rodicov pomocou turnaja
+        /// </summary>
+        /// <param name="populacia">Pole jedincov</param>
+        /// <param name="a">Prvy rodic</param>
+        /// <param name="b">Druhy rodic</param>
+        private static void Turnaj(IReadOnlyList<Jedinec> populacia, out Jedinec a, out Jedinec b)
         {
-            var a = sorted[Rand.Next(sorted.Length)];
-            var b = sorted[Rand.Next(sorted.Length)];
-            if(a.Fitness>b.Fitness)
-                b = sorted[Rand.Next(sorted.Length)];
-            else
-                a = sorted[Rand.Next(sorted.Length)];
-            return a.Fitness > b.Fitness ? a : b;
+            var vyber = new List<Jedinec>(4);
+            while (vyber.Count < 4)
+            {
+                var dalsi = populacia[Rand.Next(populacia.Count)];
+                if (vyber.Contains(dalsi)) continue;
+                vyber.Add(dalsi);
+            }
+
+            vyber.Sort((jedinec1, jedinec2) => jedinec1.Fitness.CompareTo(jedinec2.Fitness));
+
+            a = vyber[3];
+            b = vyber[2];
         }
 
         /// <summary>
@@ -302,21 +335,50 @@ namespace HladaniePokladu
         }
 
         /// <summary>
-        ///     Hlada jedinca zo zoradene pola na zaklade vstupnej hodnoty
+        ///     Hlada jedincov zo zoradeneho pola pomocou rulety
         /// </summary>
         /// <param name="sorted">Zoradene pole jedincov</param>
-        /// <param name="ruleta">nahodne vygenerovane cislo</param>
-        /// <returns>Vrati jedinca na zaklade hodnoty rulety</returns>
-        private static Jedinec NajdiJedinca(Jedinec[] sorted, int ruleta)
+        /// <param name="total">Suma fitness vsetkych jedincov</param>
+        /// <param name="a">Rodic A</param>
+        /// <param name="b">Rodic B</param>
+        private static void Ruleta(IReadOnlyList<Jedinec> sorted, int total, out Jedinec a, out Jedinec b)
         {
             var last = 0;
-            foreach (var jedinec in sorted)
+            var index = Rand.Next(total);
+            a = null;
+            var skip = -1;
+            for (var i = 0; i < sorted.Count; i++)
             {
-                if (ruleta < jedinec.Fitness + last)
-                    return jedinec;
-                last += jedinec.Fitness;
+                if (index < sorted[i].Fitness + last)
+                {
+                    a = sorted[i];
+                    skip = i;
+                    break;
+                }
+                last += sorted[i].Fitness;
             }
-            return sorted.Last();
+            if (a == null)
+            {
+                a = sorted.Last();
+                skip = sorted.Count - 1;
+            }
+            total -= a.Fitness;
+
+            last = 0;
+            index = Rand.Next(total);
+            b = null;
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                if(i == skip) continue;
+                if (index < sorted[i].Fitness + last)
+                {
+                    b = sorted[i];
+                    break;
+                }
+                last += sorted[i].Fitness;
+            }
+            if(b == null)
+                b = sorted.Last();
         }
     }
 }

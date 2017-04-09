@@ -46,6 +46,7 @@ namespace HladaniePokladu
                 Console.WriteLine(settings.Elitarizmus.Value.Typ == EliteType.Percent
                     ? $"Top {settings.Elitarizmus.Value.Hodnota} percent"
                     : $"Top {settings.Elitarizmus.Value.Hodnota} jedincov");
+            Console.WriteLine($"Typ selekcie: {settings.SelectionType}");
             Console.WriteLine($"Minimalny index pre bod krizenia: {settings.BodKrizenia.Min}");
             Console.WriteLine($"Maximalny index pre bod krizenia: {settings.BodKrizenia.Max}");
             Console.WriteLine(

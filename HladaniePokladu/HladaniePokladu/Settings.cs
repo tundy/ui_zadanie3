@@ -12,6 +12,7 @@ namespace HladaniePokladu
 
         [XmlAttribute] public int InitRadnom;
         [XmlAttribute] public int MaxJedincov;
+        [XmlAttribute] public SelectionType SelectionType;
         [XmlAttribute] public OutputType Output;
         [XmlElement] public Mutation PomerMutacie;
         [XmlAttribute] public string Stats;
@@ -21,14 +22,21 @@ namespace HladaniePokladu
         {
             Elitarizmus = new Elitarizmus(10, EliteType.Percent),
             Output = OutputType.Result,
+            SelectionType = SelectionType.Ruleta,
             BodKrizenia = new MaxMin(24, 40),
-            StopAfter = new StopAfter(20, StopType.Seconds),
+            StopAfter = new StopAfter(5, StopType.Seconds),
             Fitness = new Fitness(100, 1, 5),
             MaxJedincov = 250,
-            InitRadnom = 16,
+            InitRadnom = 48,
             PomerMutacie = new Mutation(90, 2, 3, 5),
-            Stats = "stats.txt"
+            Stats = "stats3.txt"
         };
+    }
+
+    public enum SelectionType
+    {
+        Ruleta,
+        Turnaj
     }
 
     public enum OutputType
