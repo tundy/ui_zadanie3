@@ -19,7 +19,7 @@ namespace HladaniePokladu
             for (;;)
             {
                 Console.WriteLine();
-                Console.WriteLine("ESC - pre ukoncenie programu");
+                Console.WriteLine("ESC/K - pre ukoncenie programu");
                 Console.WriteLine("S - pre znovu nacitanie nastaveni");
                 Console.WriteLine("P - pre znovu nacitanie pokladov");
                 Console.WriteLine("Hocico ine pre spustenie noveho hladania");
@@ -31,6 +31,7 @@ namespace HladaniePokladu
                     // ReSharper disable once SwitchStatementMissingSomeCases
                     switch (key.Key)
                     {
+                        case ConsoleKey.K:
                         case ConsoleKey.Escape:
                             return true;
                         case ConsoleKey.S:
@@ -38,7 +39,7 @@ namespace HladaniePokladu
                                 return true;
                             continue;
                         case ConsoleKey.P:
-                            plocha = LoadPlocha(out x, out y);
+                            plocha = LoadPlocha(settings, out x, out y);
                             continue;
                         default:
                             return false;
@@ -71,7 +72,7 @@ namespace HladaniePokladu
                     return false;
                 }
 
-                plocha = LoadPlocha(out x, out y);
+                plocha = LoadPlocha(settings, out x, out y);
                 return true;
             }
             catch
@@ -87,19 +88,22 @@ namespace HladaniePokladu
         /// <summary>
         ///     Nacita plochu zo vstupu
         /// </summary>
+        /// <param name="settings"></param>
         /// <param name="x">X-ova zaciatocna poizica</param>
         /// <param name="y">Y-ova zaciatocna pozicia</param>
         /// <returns>
         ///     Plocha, na kt. sa hladaju poklady</returns>
-        private static Plocha LoadPlocha(out int x, out int y)
+        private static Plocha LoadPlocha(Settings settings, out int x, out int y)
         {
             WritePlochaHelp();
 
-            var plocha = Plocha.CreatePlocha();
+            var stream = File.OpenText(settings.Plocha);
+
+            var plocha = Plocha.CreatePlocha(stream);
             if (plocha == null)
                 throw new NullReferenceException();
             // ReSharper disable once PossibleNullReferenceException
-            var parts = Console.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
+            var parts = stream.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
             x = int.Parse(parts[0]);
             y = int.Parse(parts[1]);
             return plocha;

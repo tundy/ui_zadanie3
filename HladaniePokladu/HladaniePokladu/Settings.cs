@@ -14,6 +14,7 @@ namespace HladaniePokladu
         [XmlAttribute] public int MaxJedincov;
         [XmlAttribute] public SelectionType SelectionType;
         [XmlAttribute] public OutputType Output;
+        [XmlAttribute] public string Plocha;
         [XmlElement] public Mutation PomerMutacie;
         [XmlAttribute] public string Stats;
 
@@ -29,7 +30,8 @@ namespace HladaniePokladu
             MaxJedincov = 250,
             InitRadnom = 48,
             PomerMutacie = new Mutation(90, 2, 3, 5),
-            Stats = "stats3.txt"
+            Stats = "stats3.txt",
+            Plocha = "vstup.txt"
         };
     }
 

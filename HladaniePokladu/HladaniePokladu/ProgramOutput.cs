@@ -36,6 +36,7 @@ namespace HladaniePokladu
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("Nacitane nastavenia:");
             Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"Vstup: {settings.Plocha}");
             Console.WriteLine($"Pocet jedincov pre jednu generaciu: {settings.MaxJedincov}");
             Console.WriteLine(settings.StopAfter.Typ == StopType.Generations
                 ? $"Maximalny pocet generacii: {settings.StopAfter.Hodnota}"

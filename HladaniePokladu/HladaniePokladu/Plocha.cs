@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace HladaniePokladu
 {
@@ -9,7 +10,7 @@ namespace HladaniePokladu
         internal readonly bool[,] Poklad;
         internal readonly int Width;
 
-        private Plocha(int width, int height, int pocet)
+        private Plocha(TextReader stream, int width, int height, int pocet)
         {
             Width = width;
             Height = height;
@@ -17,17 +18,17 @@ namespace HladaniePokladu
             PocetPokladov = pocet;
             for (var i = 0; i < pocet; ++i)
             {
-                var parts = Console.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
+                var parts = stream.ReadLine().Split(new[] {' '}, 2, StringSplitOptions.RemoveEmptyEntries);
                 Poklad[int.Parse(parts[0]), int.Parse(parts[1])] = true;
             }
         }
 
-        internal static Plocha CreatePlocha()
+        internal static Plocha CreatePlocha(TextReader stream)
         {
             try
             {
-                var parts = Console.ReadLine().Split(new[] {' '}, 3, StringSplitOptions.RemoveEmptyEntries);
-                return new Plocha(int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
+                var parts = stream.ReadLine().Split(new[] {' '}, 3, StringSplitOptions.RemoveEmptyEntries);
+                return new Plocha(stream, int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
             }
             catch
             {
